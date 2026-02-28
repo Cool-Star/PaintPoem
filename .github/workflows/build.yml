@@ -52,3 +52,15 @@ jobs:
       env:
         TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: PaintPoem-${{ matrix.platform }}
+        path: |
+          src-tauri/target/release/bundle/**/*.dmg
+          src-tauri/target/release/bundle/**/*.app
+          src-tauri/target/release/bundle/**/*.exe
+          src-tauri/target/release/bundle/**/*.msi
+          src-tauri/target/release/bundle/**/*.deb
+          src-tauri/target/release/bundle/**/*.AppImage
