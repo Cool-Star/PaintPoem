@@ -14,10 +14,10 @@ export interface SettingsState {
 const initialState: SettingsState = {
   llmUrl: '',
   llmKey: '',
-  llmModel: 'gpt-3.5-turbo',
-  imageModel: 'qwen-image',
+  llmModel: '',
+  imageModel: '',
   imageApiKey: '',
-  imageBaseURL: 'https://qianfan.baidubce.com/v2',
+  imageBaseURL: '',
 };
 
 const settingsSlice = createSlice({

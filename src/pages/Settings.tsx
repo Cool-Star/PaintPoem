@@ -42,10 +42,10 @@ const Settings: React.FC = () => {
       const settingsData = {
         llmUrl: dbSettings.llmUrl || '',
         llmKey: dbSettings.llmKey || '',
-        llmModel: dbSettings.llmModel || 'gpt-3.5-turbo',
-        imageModel: dbSettings.imageModel || 'qwen-image',
+        llmModel: dbSettings.llmModel || '',
+        imageModel: dbSettings.imageModel || '',
         imageApiKey: dbSettings.imageApiKey || '',
-        imageBaseURL: dbSettings.imageBaseURL || 'https://qianfan.baidubce.com/v2',
+        imageBaseURL: dbSettings.imageBaseURL || '',
       };
       dispatch(setSettings(settingsData));
       form.setFieldsValue(settingsData);
@@ -137,11 +137,11 @@ const Settings: React.FC = () => {
         >
           <Card title="文本大模型配置" className={styles.card}>
             <Form.Item
-              label="模型地址"
+              label="Base URL"
               name="llmUrl"
               rules={[{ type: 'url', message: '请输入有效的 URL' }]}
             >
-              <Input placeholder="例如: https://api.openai.com/v1/chat/completions" />
+              <Input placeholder="例如: https://api.openai.com/v1" />
             </Form.Item>
 
             <Form.Item
@@ -161,11 +161,21 @@ const Settings: React.FC = () => {
 
           <Card title="图像生成配置" className={styles.card}>
             <Form.Item
+              label="Base URL"
+              name="imageBaseURL"
+              rules={[
+                { required: true, message: '请输入 Base URL' },
+                { type: 'url', message: '请输入有效的 URL' }
+              ]}
+            >
+              <Input placeholder="例如: https://qianfan.baidubce.com/v2" />
+            </Form.Item>
+            <Form.Item
               label="模型名称"
               name="imageModel"
               rules={[{ required: true, message: '请输入模型名称' }]}
             >
-              <Input placeholder="例如: qwen-image" />
+              <Input placeholder="例如: qfan-image" />
             </Form.Item>
 
             <Form.Item
@@ -176,16 +186,7 @@ const Settings: React.FC = () => {
               <Input.Password placeholder="请输入 API Key" />
             </Form.Item>
 
-            <Form.Item
-              label="Base URL"
-              name="imageBaseURL"
-              rules={[
-                { required: true, message: '请输入 Base URL' },
-                { type: 'url', message: '请输入有效的 URL' }
-              ]}
-            >
-              <Input placeholder="例如: https://qianfan.baidubce.com/v2" />
-            </Form.Item>
+
           </Card>
 
           <Card title="字体设置" className={styles.card}>
