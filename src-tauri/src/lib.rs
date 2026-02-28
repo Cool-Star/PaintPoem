@@ -2,6 +2,8 @@
 // 所有业务逻辑通过前端 React + TypeScript 实现
 // Rust 端仅作为 Tauri 框架的宿主，负责插件初始化
 
+use tauri::Manager;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -11,11 +13,11 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .on_window_event(|window, event| {
-            // 禁用右键菜单
-            if let tauri::WindowEvent::WebviewReady = event {
-                window.eval("document.addEventListener('contextmenu', e => e.preventDefault());").ok();
-            }
+        .setup(|app| {
+            // 禁用右键菜单 - 在窗口创建后执行
+            let window = app.get_webview_window("main").unwrap();
+            window.eval("document.addEventListener('contextmenu', e => e.preventDefault());").ok();
+            Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
