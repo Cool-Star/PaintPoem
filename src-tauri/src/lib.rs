@@ -11,6 +11,12 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .on_window_event(|window, event| {
+            // 禁用右键菜单
+            if let tauri::WindowEvent::WebviewReady = event {
+                window.eval("document.addEventListener('contextmenu', e => e.preventDefault());").ok();
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
