@@ -1,0 +1,45 @@
+/* Reset or global styles */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #0a0a0a;
+
+}
+
+:root {
+  height: 100%;
+}
+
+
+/* Chrome, Safari, Edge - 暗色系滚动条样式 */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background-color: transparent;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #404040;
+  border-radius: 4px;
+  border: 2px solid #1a1a1a;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #505050;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: #606060;
+}
+
+[data-overlayscrollbars-viewport] {
+  overflow-x: var(--os-viewport-overflow-x);
+  overflow-y: var(--os-viewport-overflow-y);
+}

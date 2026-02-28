@@ -1,0 +1,47 @@
+{
+  "name": "paint-poem",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "@reduxjs/toolkit": "^2.11.2",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "~2",
+    "@tauri-apps/plugin-fs": "~2",
+    "@tauri-apps/plugin-opener": "~2",
+    "@tauri-apps/plugin-process": "~2",
+    "@tauri-apps/plugin-sql": "~2",
+    "@tauri-apps/plugin-upload": "~2",
+    "@types/pdfkit": "^0.17.5",
+    "antd": "^6.2.3",
+    "blob-stream": "^0.1.3",
+    "buffer": "^6.0.3",
+    "chinese-s2t": "^1.0.0",
+    "events": "^3.3.0",
+    "openai": "^6.18.0",
+    "overlayscrollbars": "^2.14.0",
+    "pdfkit": "^0.17.2",
+    "process": "^0.11.10",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.13.0",
+    "stream-browserify": "^3.0.0",
+    "util": "^0.12.5"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "sass": "^1.97.3",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4"
+  }
+}

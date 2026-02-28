@@ -1,0 +1,35 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+    <!-- 云朵元素（3个） -->
+  <g opacity="0.05" fill="transparent">
+    <!-- 云朵1 -->
+    <path stroke="#91d5ff" stroke-width="2" d="M200,150 Q230,120 270,130 Q310,140 320,170 Q340,180 330,210 Q300,220 260,210 Q220,200 200,170 Z"/>
+    <!-- 云朵2 -->
+    <path stroke="#91d5ff" stroke-width="2" d="M500,200 Q530,170 570,180 Q610,190 620,220 Q640,230 630,260 Q600,270 560,260 Q520,250 500,220 Z"/>
+    <!-- 云朵3 -->
+    <path stroke="#91d5ff" stroke-width="2" d="M350,300 Q380,270 420,280 Q460,290 470,320 Q490,330 480,360 Q450,370 410,360 Q370,350 350,320 Z"/>
+  </g>
+  
+  <!-- 书本元素（3个） -->
+  <g opacity="0.03" fill="transparent">
+    <!-- 书本1 -->
+    <rect x="150" y="350" width="80" height="100" rx="5" stroke="#fff" stroke-width="2" fill="transparent"/>
+    <line x1="150" y1="350" x2="150" y2="450" stroke="#91d5ff" stroke-width="2" />
+    <!-- 书本2 -->
+    <rect x="300" y="380" width="70" height="90" rx="5" stroke="#fff" stroke-width="2" fill="transparent"/>
+    <line x1="300" y1="380" x2="300" y2="470" stroke="#91d5ff" stroke-width="2"/>
+    <!-- 书本3 -->
+    <rect x="450" y="360" width="90" height="110" rx="5" stroke="#fff" stroke-width="2" fill="transparent"/>
+    <line x1="450" y1="360" x2="450" y2="470" stroke="#91d5ff" stroke-width="2"/>
+  </g>
+  
+  <!-- 装饰元素：星星和线条 -->
+  <g opacity="0.02" fill="#fffbe6" stroke="#ffd591" stroke-width="1">
+    <!-- 星星 -->
+    <path d="M600,150 L610,170 L630,170 L615,185 L620,205 L600,195 L580,205 L585,185 L570,170 L590,170 Z"/>
+    <path d="M100,250 L110,270 L130,270 L115,285 L120,305 L100,295 L80,305 L85,285 L70,270 L90,270 Z"/>
+    <!-- 装饰线条 -->
+    <path d="M50,50 Q200,100 100,200" fill="none"/>
+    <path d="M700,50 Q600,150 750,200" fill="none"/>
+    <path d="M100,500 Q250,450 400,500" fill="none"/>
+  </g>
+</svg>

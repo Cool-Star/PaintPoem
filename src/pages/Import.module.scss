@@ -1,0 +1,458 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+
+  .header {
+    margin-bottom: 20px;
+
+    .headerContent {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .headerIcon {
+      font-size: 48px;
+      color: #D4A574;
+    }
+
+    .title {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+    }
+  }
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .dropZone {
+    border: 2px dashed rgba(212, 165, 116, 0.4);
+    border-radius: 12px;
+    padding: 60px 40px;
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, rgba(212, 165, 116, 0.05) 0%, transparent 70%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover {
+      border-color: rgba(212, 165, 116, 0.6);
+      background: rgba(255, 255, 255, 0.04);
+
+      &::before {
+        opacity: 1;
+      }
+    }
+
+    &.dragOver {
+      border-color: #D4A574;
+      border-style: solid;
+      background: rgba(212, 165, 116, 0.15);
+      transform: scale(1.02);
+      box-shadow: 0 0 20px rgba(212, 165, 116, 0.3);
+
+      &::before {
+        opacity: 1;
+      }
+
+      .uploadIcon {
+        transform: scale(1.1);
+        color: #E8B88A;
+      }
+    }
+
+    &.loading {
+      opacity: 0.6;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .dropZoneContent {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .importingContent {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+      padding: 20px;
+    }
+
+    .importingIcon {
+      font-size: 64px;
+      color: #D4A574;
+
+      :global(.anticon) {
+        animation: rotate 1s linear infinite;
+      }
+    }
+
+    @keyframes rotate {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .importingTitle {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+    }
+
+    .progressInfo {
+      width: 100%;
+      text-align: center;
+    }
+
+    .progressText {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.75);
+      font-weight: 500;
+    }
+
+    .progressBar {
+      width: 100%;
+    }
+
+    .importingStats {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .importingStat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 14px;
+    }
+
+    .successIcon {
+      color: #52c41a;
+      font-size: 16px;
+    }
+
+    .duplicateText {
+      color: #faad14;
+    }
+
+    .skippedText {
+      color: #8c8c8c;
+    }
+
+    .failedText {
+      color: #ff4d4f;
+    }
+
+    .uploadIcon {
+      font-size: 72px;
+      color: #D4A574;
+      opacity: 0.8;
+      transition: all 0.3s ease;
+    }
+
+    .dropTitle {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.85);
+      font-weight: 500;
+    }
+
+    .dropHint {
+      margin: 8px 0 0 0;
+      color: rgba(255, 255, 255, 0.45);
+      font-size: 13px;
+    }
+
+    .selectBtn {
+      margin-top: 8px;
+      height: 44px;
+      padding: 0 32px;
+      font-size: 16px;
+      border-radius: 8px;
+    }
+  }
+
+  .statsCard {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+
+    .statsHeader {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .statsIcon {
+      font-size: 24px;
+      color: #52c41a;
+    }
+
+    .statsTitle {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .statsDetails {
+      display: flex;
+      gap: 32px;
+      margin-top: 20px;
+    }
+
+    .statItem {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .statLabel {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .statValue {
+      font-size: 24px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+
+  .guideCard {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+
+    .guideTitle {
+      margin: 0 0 16px 0;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .featureList {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .featureItem {
+      display: flex;
+      align-items: center;
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .codeBlock {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      color: #D4A574;
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 0 0 16px 0;
+    }
+
+    .guideFooter {
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .link {
+      color: #D4A574;
+      margin-left: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+
+      &:hover {
+        color: #E8B88A;
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .guideFooter {
+    margin-top: 20px;
+    text-align: center;
+
+    .link {
+      color: #D4A574;
+      margin-left: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+
+      &:hover {
+        color: #E8B88A;
+        text-decoration: underline;
+      }
+    }
+  }
+
+  // 在线导入样式
+  .onlineImportSection {
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .sectionTitle {
+    font-size: 20px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .titleIcon {
+      color: #D4A574;
+      font-size: 24px;
+    }
+  }
+
+  .sourceList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .sourceItem {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 16px 20px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(212, 165, 116, 0.3);
+    }
+
+    .sourceHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .sourceInfo {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sourceName {
+      font-size: 16px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .sourceDetails {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .sourceActions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .statusBadge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+
+      &.pending {
+        background: rgba(250, 173, 20, 0.15);
+        color: #faad14;
+      }
+
+      &.completed {
+        background: rgba(82, 196, 26, 0.15);
+        color: #52c41a;
+      }
+
+      &.downloading {
+        background: rgba(24, 144, 255, 0.15);
+        color: #1890ff;
+      }
+
+      &.failed {
+        background: rgba(255, 77, 79, 0.15);
+        color: #ff4d4f;
+      }
+    }
+  }
+
+  .batchActions {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-start;
+  }
+
+  .globalProgress {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    .progressTitle {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 12px;
+    }
+
+    .progressStats {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+}

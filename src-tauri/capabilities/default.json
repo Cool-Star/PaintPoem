@@ -1,0 +1,36 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:image:default",
+    "core:webview:allow-set-webview-zoom",
+    "opener:default",
+    "opener:allow-open-path",
+    "opener:allow-reveal-item-in-dir",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "sql:allow-load",
+    "fs:allow-write",
+    "fs:allow-read",
+    "fs:allow-mkdir",
+    "fs:allow-exists",
+    "fs:allow-copy-file",
+    "fs:allow-read-text-file",
+    "fs:allow-app-write",
+    "fs:allow-app-write-recursive",
+    "fs:allow-app-read",
+    "fs:allow-app-read-recursive",
+    "fs:scope-appdata-recursive",
+    "upload:default",
+    "upload:allow-download",
+    "process:allow-restart",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "dialog:allow-message"
+  ]
+}

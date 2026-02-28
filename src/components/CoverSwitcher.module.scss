@@ -1,0 +1,140 @@
+.container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  backdrop-filter: blur(2px);
+  padding: 6px 8px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.expandBtn {
+  color: rgba(255, 255, 255, 0.6);
+  padding: 4px;
+  height: auto;
+  transition: all 0.3s ease;
+  height: 68px;
+  line-height: 1;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    color: #D4A574;
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.coverList {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  flex-wrap: nowrap;
+
+  &.collapsed {
+    max-width: 0;
+    opacity: 0;
+    gap: 0;
+  }
+
+  &.expanded {
+    max-width: 300px;
+    opacity: 1;
+    flex-wrap: nowrap;
+    overflow: auto;
+  }
+}
+
+.coverItem {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+    .deleteBtn {
+      opacity: 1;
+    }
+  }
+
+  &.active {
+    border-color: #D4A574;
+    box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.3);
+  }
+}
+
+.thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.deleteBtn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  background: rgba(255, 77, 79, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 77, 79, 1);
+    transform: scale(1.1);
+  }
+}
+
+.activeIndicator {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background: #D4A574;
+  border-radius: 50%;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding-left: 8px;
+  // border-right: 1px solid rgba(255, 255, 255, 0.2);
+
+  .count {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+
+    .icon {
+      font-size: 14px;
+      color: #D4A574;
+    }
+  }
+}

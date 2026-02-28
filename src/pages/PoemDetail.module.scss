@@ -1,0 +1,177 @@
+.container {
+  height: 100%;
+  padding: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .header {
+    position: relative;
+    z-index: 2;
+    padding: 8px 24px 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(2px);
+    flex: none;
+
+    .headerLeft {
+      display: flex;
+      align-items: center;
+    }
+
+    .headerRight {
+      display: flex;
+      align-items: center;
+    }
+
+    .backBtn {
+      font-size: 16px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.85);
+      padding: 8px 16px;
+      height: auto;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+
+      .anticon {
+        font-size: 18px;
+      }
+    }
+
+    .actionBtn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.75);
+      transition: all 0.3s ease;
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        transform: translateY(-2px);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .anticon {
+        font-size: 20px;
+      }
+
+      // Loading 特效样式
+      :global(.ant-spin) {
+        color: rgba(255, 255, 255, 0.75);
+      }
+    }
+
+    .deleteBtn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 100, 100, 0.85);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 100, 100, 0.15);
+        color: #ff6666;
+        transform: translateY(-2px);
+      }
+
+      .anticon {
+        font-size: 20px;
+      }
+    }
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 0 15px 20px 25px;
+    flex-direction: column;
+    overflow: hidden;
+
+    .titleSection {
+      width: 100%;
+      flex: none;
+      border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+
+      .title {
+        margin-bottom: 24px;
+        font-size: 42px;
+        font-weight: 500;
+        letter-spacing: 2px;
+        line-height: 50px;
+        margin: 0;
+      }
+
+      .author {
+        font-size: 20px;
+        margin-left: 10px;
+        line-height: 50px;
+      }
+    }
+
+    .paragraphs {
+      line-height: 2;
+      font-size: 22px;
+      // font-family: serif;
+      letter-spacing: 1px;
+      width: 100%;
+      overflow: auto;
+
+      .paragraph {
+        margin-bottom: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        .pinyin {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.6);
+          margin-bottom: 4px;
+          letter-spacing: 2px;
+          font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        .characters {
+          font-size: 22px;
+        }
+      }
+    }
+  }
+
+  // 译文内容
+  .translationContent {
+    margin-top: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    .translationText {
+      font-size: 18px;
+      line-height: 2;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0;
+    }
+  }
+}

@@ -1,0 +1,152 @@
+.container {
+  height: 100%;
+  padding: 20px;
+  overflow: auto;
+}
+
+.loadingWrapper {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyWrapper {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  .title {
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-color: rgba(212, 165, 116, 0.3);
+
+    .unfavoriteBtn {
+      opacity: 1;
+    }
+  }
+}
+
+.cardBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.15;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.cardBody {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+
+  .title {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.95);
+    cursor: pointer;
+
+    &:hover {
+      color: #D4A574;
+    }
+  }
+
+  .unfavoriteBtn {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    color: rgba(255, 255, 255, 0.6);
+
+    &:hover {
+      color: #ff6666;
+    }
+  }
+}
+
+.author {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  display: block;
+  margin-bottom: 12px;
+}
+
+.coverSection {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.poemContent {
+  .paragraph {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    line-height: 1.8;
+    margin-bottom: 0;
+    white-space: pre-line;
+  }
+
+  .expandBtn {
+    padding: 0;
+    height: auto;
+    font-size: 12px;
+    color: #D4A574;
+
+    &:hover {
+      color: #E8C9A0;
+    }
+  }
+}
+
+.tags {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
