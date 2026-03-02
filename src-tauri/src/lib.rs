@@ -14,9 +14,12 @@ pub fn run() {
         .plugin(tauri_plugin_sql::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            // 禁用右键菜单 - 在窗口创建后执行
-            let window = app.get_webview_window("main").unwrap();
-            window.eval("document.addEventListener('contextmenu', e => e.preventDefault());").ok();
+            // 禁用右键菜单 - 仅在生产环境下执行
+            #[cfg(not(debug_assertions))]
+            {
+                let window = app.get_webview_window("main").unwrap();
+                window.eval("document.addEventListener('contextmenu', e => e.preventDefault());").ok();
+            }
             Ok(())
         })
         .run(tauri::generate_context!())

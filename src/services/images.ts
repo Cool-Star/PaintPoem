@@ -61,12 +61,25 @@ const generateImage = async ({
   const finalFilename = filename || generateRandomFilename();
   const fileNameWithExt = finalFilename.endsWith('.png') ? finalFilename : `${finalFilename}.png`;
 
-  // 使用 Tauri 的 download 功能下载图片（绕过 CORS 限制）
+  // 构建完整文件路径
   const filePath = await join(imagesDir, fileNameWithExt);
   const appDataPath = await import('@tauri-apps/api/path').then(m => m.appDataDir());
   const fullPath = await join(appDataPath, filePath);
 
-  await download(imageUrl, fullPath);
+  // 判断是 Data URL (base64) 还是普通 URL
+  if (imageUrl.startsWith('data:')) {
+    // Data URL 形式：解析 base64 并写入文件
+    const { writeFile } = await import('@tauri-apps/plugin-fs');
+    const base64Data = imageUrl.split(',')[1];
+    if (!base64Data) {
+      throw new Error('生成图片失败：Data URL 格式无效');
+    }
+    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+    await writeFile(fullPath, binaryData);
+  } else {
+    // 普通 URL 形式：使用 download 下载
+    await download(imageUrl, fullPath);
+  }
 
   // 返回可访问的文件路径
   return fullPath;
