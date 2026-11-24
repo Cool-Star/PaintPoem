@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
-import { mkdir, BaseDirectory, exists } from '@tauri-apps/plugin-fs';
-import { join } from '@tauri-apps/api/path';
+import { mkdir, BaseDirectory, exists, writeFile } from '@tauri-apps/plugin-fs';
+import { appDataDir, join } from '@tauri-apps/api/path';
 import { download } from '@tauri-apps/plugin-upload';
 
 /**
@@ -63,13 +63,12 @@ const generateImage = async ({
 
   // 构建完整文件路径
   const filePath = await join(imagesDir, fileNameWithExt);
-  const appDataPath = await import('@tauri-apps/api/path').then(m => m.appDataDir());
+  const appDataPath = await appDataDir();
   const fullPath = await join(appDataPath, filePath);
 
   // 判断是 Data URL (base64) 还是普通 URL
   if (imageUrl.startsWith('data:')) {
     // Data URL 形式：解析 base64 并写入文件
-    const { writeFile } = await import('@tauri-apps/plugin-fs');
     const base64Data = imageUrl.split(',')[1];
     if (!base64Data) {
       throw new Error('生成图片失败：Data URL 格式无效');

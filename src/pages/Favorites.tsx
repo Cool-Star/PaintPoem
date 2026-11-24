@@ -6,16 +6,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { loadFavorites } from '../store/favoriteSlice';
 import { getFavoritePoems, removeFavorite } from '../db';
-import type { PoemData } from '../types/poem';
-import { getActiveCover } from '../db';
+import type { PoemCardData } from '../types/poem';
 import PoemCard from '../components/PoemCard';
 import styles from './Favorites.module.scss';
 
 const { Text } = Typography;
-
-interface PoemWithCover extends PoemData {
-  activeCover?: string;
-}
 
 const Favorites: React.FC = () => {
   const navigate = useNavigate();
@@ -23,7 +18,7 @@ const Favorites: React.FC = () => {
   const favorites = useSelector((state: RootState) => state.favorite.favorites);
   const loading = useSelector((state: RootState) => state.favorite.loading);
 
-  const [poems, setPoems] = useState<PoemWithCover[]>([]);
+  const [poems, setPoems] = useState<PoemCardData[]>([]);
   const [loadingPoems, setLoadingPoems] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
 
@@ -34,36 +29,24 @@ const Favorites: React.FC = () => {
 
   // 加载收藏的诗词详情
   useEffect(() => {
-    const fetchFavoritePoems = async () => {
-      if (favorites.length === 0) {
-        setPoems([]);
-        return;
-      }
+    if (favorites.length === 0) {
+      setPoems([]);
+      setLoadingPoems(false);
+      return;
+    }
 
-      setLoadingPoems(true);
-      try {
-        const favoritePoems = await getFavoritePoems();
+    let current = true;
+    setLoadingPoems(true);
+    getFavoritePoems()
+      .then(result => {
+        if (current) setPoems(result);
+      })
+      .catch(error => console.error('Failed to fetch favorite poems:', error))
+      .finally(() => {
+        if (current) setLoadingPoems(false);
+      });
 
-        // 获取每张配图的生效配图
-        const poemsWithCovers = await Promise.all(
-          favoritePoems.map(async (poem) => {
-            const activeCover = await getActiveCover(poem.id);
-            return {
-              ...poem,
-              activeCover: activeCover?.cover_path,
-            };
-          })
-        );
-
-        setPoems(poemsWithCovers);
-      } catch (error) {
-        console.error('Failed to fetch favorite poems:', error);
-      } finally {
-        setLoadingPoems(false);
-      }
-    };
-
-    fetchFavoritePoems();
+    return () => { current = false; };
   }, [favorites]);
 
   const toggleExpand = (id: number) => {

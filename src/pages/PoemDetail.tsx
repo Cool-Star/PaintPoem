@@ -22,14 +22,11 @@ import { loadFavorites } from '../store/favoriteSlice';
 import { getFontFamily, loadFontFace } from '../utils/fontLoader';
 import { getDb, getPoemCovers, addPoemCover, deletePoemCover, setActiveCover as setDbActiveCover, type PoemCover } from '../db';
 import type { PoemData } from '../types/poem';
-import { generateImage } from '../services/images';
-import { optimizePoem, saveOptimizedPoem } from '../services/ai';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyFile, mkdir, BaseDirectory, writeFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
-import { generateCalligraphyPdf } from '../services/calligraphyPdf';
 import ImageGenerateModal, { ImageGenerateParams } from '../components/ImageGenerateModal';
 import CoverSwitcher from '../components/CoverSwitcher';
 import FavoriteButton from '../components/FavoriteButton';
@@ -293,6 +290,7 @@ const PoemDetail: React.FC = () => {
       setGenerating(true);
       setModalOpen(false);
 
+      const { generateImage } = await import('../services/images');
       const styleDesc = getStyleDescription(params.style);
       const coverUrl = await generateImage({
         prompt: `请为以下诗词创作一幅配图：
@@ -360,6 +358,7 @@ ${poem.paragraphs}
 
     setOptimizing(true);
     try {
+      const { optimizePoem, saveOptimizedPoem } = await import('../services/ai');
       const result = await optimizePoem(poem, {
         llmUrl: settings.llmUrl,
         llmKey: settings.llmKey,
@@ -455,6 +454,7 @@ ${poem.paragraphs}
     try {
       message.loading('正在生成PDF...', 0);
 
+      const { generateCalligraphyPdf } = await import('../services/calligraphyPdf');
       const content = getPoemContent();
       const pinyinList = getPoemPinyin();
       const coverImage = getActiveCoverImage();

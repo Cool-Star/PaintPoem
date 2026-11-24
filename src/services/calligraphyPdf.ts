@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit/js/pdfkit.standalone';
 import blobStream from 'blob-stream';
 import { Buffer } from 'buffer';
 import { readFile } from '@tauri-apps/plugin-fs';
+import builtinFontUrl from '../assets/SourceHanSerifCN-Regular-1.otf?url';
 import type { FontData } from '../types/font';
 
 export interface GenerateCalligraphyPdfOptions {
@@ -53,61 +54,25 @@ export async function generateCalligraphyPdf(
       // 使用 blob-stream 收集 PDF 数据
       const stream = doc.pipe(blobStream());
 
-      // 加载字体
-      let fontLoaded = false;
-      try {
-        let fontBuffer: Buffer;
-
-        if (font) {
-          if (!font.isBuiltin) {
-            // 使用用户上传的字体 - 路径已经是绝对路径
-            const fontData = await readFile(font.path);
-            fontBuffer = Buffer.from(fontData);
-
-            // 尝试注册字体
-            try {
-              doc.registerFont('CustomFont', fontBuffer);
-              doc.font('CustomFont');
-              fontLoaded = true;
-              console.log('使用自定义字体:', font.name);
-            } catch (fontError) {
-              console.warn('自定义字体加载失败:', fontError);
-              fontLoaded = false;
-            }
-          } else {
-            // 内置字体
-            try {
-              // 检查路径类型
-              if (font.path.startsWith('builtin://')) {
-                // 特殊标记：使用 fetch 从 /src/assets/ 加载
-                const response = await fetch('/src/assets/SourceHanSerifCN-Regular-1.otf');
-                if (!response.ok) {
-                  throw new Error(`Failed to fetch font: ${response.status}`);
-                }
-                const arrayBuffer = await response.arrayBuffer();
-                fontBuffer = Buffer.from(arrayBuffer);
-              } else {
-                // 绝对路径：从 appData/fonts 读取
-                const fontData = await readFile(font.path);
-                fontBuffer = Buffer.from(fontData);
-              }
-
-              doc.registerFont('SourceHanSerifCN', fontBuffer);
-              doc.font('SourceHanSerifCN');
-              fontLoaded = true;
-              console.log('使用内置思源宋体字体');
-            } catch (builtinFontError) {
-              console.warn('内置字体加载失败:', builtinFontError);
-              fontLoaded = false;
-            }
-          }
+      let customFontLoaded = false;
+      if (font && !font.isBuiltin) {
+        try {
+          const fontData = await readFile(font.path);
+          doc.registerFont('CustomFont', Buffer.from(fontData));
+          doc.font('CustomFont');
+          customFontLoaded = true;
+        } catch (error) {
+          console.warn('自定义字体加载失败:', error);
         }
+      }
 
-        if (!fontLoaded) {
-          console.warn('没有可用的字体，使用 pdfkit 默认字体');
+      if (!customFontLoaded) {
+        const response = await fetch(builtinFontUrl);
+        if (!response.ok) {
+          throw new Error(`无法加载内置思源宋体（HTTP ${response.status}）`);
         }
-      } catch (error) {
-        console.error('字体加载失败:', error);
+        doc.registerFont('SourceHanSerifCN', Buffer.from(await response.arrayBuffer()));
+        doc.font('SourceHanSerifCN');
       }
 
       // 计算可用空间

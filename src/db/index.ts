@@ -1,8 +1,6 @@
 import Database from '@tauri-apps/plugin-sql';
-import { appDataDir, join } from '@tauri-apps/api/path';
-import { writeFile, mkdir, BaseDirectory } from '@tauri-apps/plugin-fs';
 import type { FontData } from '../types/font';
-import type { PoemData } from '../types/poem';
+import type { PoemCardData } from '../types/poem';
 
 let db: Database | null = null;
 
@@ -173,6 +171,31 @@ export async function saveSettings(settings: Settings): Promise<void> {
   }
 }
 
+const poemCardColumns = `p.id, p.title, p.author, p.paragraphs, p.tags,
+  (SELECT c.cover_path FROM poem_covers c
+   WHERE c.poem_id = p.id AND c.is_active = 1
+   ORDER BY c.id LIMIT 1) AS activeCover`;
+
+export async function getPoemsPage(keywords: string[], page: number, pageSize: number) {
+  const database = await getDb();
+  const conditions = keywords.map(() => '(p.title LIKE ? OR p.author LIKE ? OR p.paragraphs LIKE ?)');
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  const params = keywords.flatMap(keyword => {
+    const pattern = `%${keyword}%`;
+    return [pattern, pattern, pattern];
+  });
+
+  const [poems, counts] = await Promise.all([
+    database.select<PoemCardData[]>(
+      `SELECT ${poemCardColumns} FROM poems p ${where} ORDER BY p.id LIMIT ? OFFSET ?`,
+      [...params, pageSize, (page - 1) * pageSize]
+    ),
+    database.select<{ count: number }[]>(`SELECT COUNT(*) AS count FROM poems p ${where}`, params),
+  ]);
+
+  return { poems, total: counts[0].count };
+}
+
 export async function deleteAllPoems(): Promise<void> {
   const database = await getDb();
   // 删除所有诗词数据
@@ -233,59 +256,29 @@ export async function deleteImportedSource(sourceKey: string): Promise<void> {
 
 // 字体相关操作
 async function initBuiltinFont(database: Database): Promise<void> {
-  // 检查是否已存在内置字体
-  const existing = await database.select<{ count: number }[]>(
-    'SELECT COUNT(*) as count FROM fonts WHERE is_builtin = 1'
+  // 内置字体随应用打包，首次运行无需将字体复制到应用数据目录。
+  await database.execute(
+    `INSERT INTO fonts (name, path, format, family, is_builtin, is_global_default, is_print_default)
+     SELECT ?, ?, ?, ?, 1, 1, 1
+     WHERE NOT EXISTS (SELECT 1 FROM fonts WHERE is_builtin = 1)`,
+    ['思源宋体', 'builtin://SourceHanSerifCN-Regular-1.otf', 'otf', 'SourceHanSerifCN']
   );
-
-  if (existing[0].count === 0) {
-    try {
-      // 将内置字体文件复制到 appData/fonts 目录
-      const appData = await appDataDir();
-      const fontsDir = await join(appData, 'fonts');
-      const fontPath = await join(fontsDir, 'SourceHanSerifCN-Regular.otf');
-
-      // 确保 fonts 目录存在
-      await mkdir('fonts', { baseDir: BaseDirectory.AppData, recursive: true });
-
-      // 使用 fetch 获取字体文件（通过相对路径）
-      const response = await fetch('/src/assets/SourceHanSerifCN-Regular-1.otf');
-      if (!response.ok) {
-        throw new Error(`Failed to fetch font: ${response.status}`);
-      }
-      const fontData = new Uint8Array(await response.arrayBuffer());
-
-      // 写入到 appData/fonts
-      await writeFile(fontPath, fontData);
-      console.log('✅ 内置字体文件已复制到:', fontPath);
-
-      // 添加内置字体记录（使用绝对路径）
-      await database.execute(
-        `INSERT INTO fonts (name, path, format, family, is_builtin, is_global_default, is_print_default) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        ['思源宋体', fontPath, 'otf', 'SourceHanSerifCN', 1, 1, 1]
-      );
-      console.log('✅ 内置字体初始化完成');
-    } catch (error) {
-      console.error('❌ 内置字体初始化失败:', error);
-      // 如果复制失败，使用特殊标记，让 PDF 生成时使用 fetch 直接加载
-      await database.execute(
-        `INSERT INTO fonts (name, path, format, family, is_builtin, is_global_default, is_print_default) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        ['思源宋体', 'builtin://SourceHanSerifCN-Regular-1.otf', 'otf', 'SourceHanSerifCN', 1, 1, 1]
-      );
-    }
-  }
 }
+
+const fontColumns = `id, name, path, format, family,
+  is_builtin AS isBuiltin, is_global_default AS isGlobalDefault,
+  is_print_default AS isPrintDefault, created_at AS createdAt, updated_at AS updatedAt`;
 
 export async function getFonts(): Promise<FontData[]> {
   const database = await getDb();
-  return await database.select<FontData[]>('SELECT * FROM fonts ORDER BY is_builtin DESC, created_at DESC');
+  return await database.select<FontData[]>(
+    `SELECT ${fontColumns} FROM fonts ORDER BY is_builtin DESC, created_at DESC, id ASC`
+  );
 }
 
 export async function getFontById(id: number): Promise<FontData | null> {
   const database = await getDb();
-  const results = await database.select<FontData[]>('SELECT * FROM fonts WHERE id = ?', [id]);
+  const results = await database.select<FontData[]>(`SELECT ${fontColumns} FROM fonts WHERE id = ?`, [id]);
   return results[0] || null;
 }
 
@@ -327,33 +320,27 @@ export async function deleteFont(id: number): Promise<void> {
 
 export async function setGlobalDefaultFont(id: number | null): Promise<void> {
   const database = await getDb();
-  // 先清除所有全局默认
-  await database.execute('UPDATE fonts SET is_global_default = 0');
-  // 设置新的全局默认
-  if (id !== null) {
-    await database.execute('UPDATE fonts SET is_global_default = 1 WHERE id = ?', [id]);
-  }
+  await database.execute('UPDATE fonts SET is_global_default = CASE WHEN id = ? THEN 1 ELSE 0 END', [id]);
 }
 
 export async function setPrintDefaultFont(id: number | null): Promise<void> {
   const database = await getDb();
-  // 先清除所有打印默认
-  await database.execute('UPDATE fonts SET is_print_default = 0');
-  // 设置新的打印默认
-  if (id !== null) {
-    await database.execute('UPDATE fonts SET is_print_default = 1 WHERE id = ?', [id]);
-  }
+  await database.execute('UPDATE fonts SET is_print_default = CASE WHEN id = ? THEN 1 ELSE 0 END', [id]);
 }
 
 export async function getGlobalDefaultFont(): Promise<FontData | null> {
   const database = await getDb();
-  const results = await database.select<FontData[]>('SELECT * FROM fonts WHERE is_global_default = 1 LIMIT 1');
+  const results = await database.select<FontData[]>(
+    `SELECT ${fontColumns} FROM fonts WHERE is_global_default = 1 ORDER BY id LIMIT 1`
+  );
   return results[0] || null;
 }
 
 export async function getPrintDefaultFont(): Promise<FontData | null> {
   const database = await getDb();
-  const results = await database.select<FontData[]>('SELECT * FROM fonts WHERE is_print_default = 1 LIMIT 1');
+  const results = await database.select<FontData[]>(
+    `SELECT ${fontColumns} FROM fonts WHERE is_print_default = 1 ORDER BY id LIMIT 1`
+  );
   return results[0] || null;
 }
 
@@ -489,7 +476,7 @@ export async function setActiveCover(poemId: number, coverId: number): Promise<v
 export async function getActiveCover(poemId: number): Promise<PoemCover | null> {
   const database = await getDb();
   const results = await database.select<PoemCover[]>(
-    'SELECT * FROM poem_covers WHERE poem_id = ? AND is_active = 1 LIMIT 1',
+    'SELECT * FROM poem_covers WHERE poem_id = ? AND is_active = 1 ORDER BY id LIMIT 1',
     [poemId]
   );
   return results[0] || null;
@@ -558,10 +545,10 @@ export async function isFavorite(poemId: number): Promise<boolean> {
   return results[0].count > 0;
 }
 
-export async function getFavoritePoems(): Promise<PoemData[]> {
+export async function getFavoritePoems(): Promise<PoemCardData[]> {
   const database = await getDb();
-  return await database.select<PoemData[]>(`
-    SELECT p.* FROM poems p
+  return await database.select<PoemCardData[]>(`
+    SELECT ${poemCardColumns} FROM poems p
     INNER JOIN favorites f ON p.id = f.poem_id
     ORDER BY f.created_at DESC
   `);

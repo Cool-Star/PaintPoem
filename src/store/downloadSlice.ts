@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { poemSource } from '../datas/poemSource';
 import { getImportedSources, markSourceAsImported, deleteImportedSource } from '../db';
-import { importFromSource, importFromSourcesBatch, BatchImportSource, SourceInfo } from '../services/import';
+import type { BatchImportSource, SourceInfo } from '../services/import';
 
 interface TaskItem {
   sourceKey: string;
@@ -111,6 +111,7 @@ export const startImportTask = createAsyncThunk(
       }));
 
       // 执行导入
+      const { importFromSource } = await import('../services/import');
       const result = await importFromSource(
         { url: task.url, groups: task.groups } as SourceInfo,
         formatter as (data: import('../types/poem').Poem[], source: SourceInfo) => import('../types/poem').Poem[],
@@ -201,6 +202,7 @@ export const startBatchImport = createAsyncThunk(
 
     try {
       // 使用并发批量导入
+      const { importFromSourcesBatch } = await import('../services/import');
       const result = await importFromSourcesBatch(batchSources, {
         concurrentDownloads: 5,
         onProgress: (progress) => {
@@ -295,6 +297,7 @@ export const startSourceBatchImport = createAsyncThunk(
 
     try {
       // 使用并发批量导入
+      const { importFromSourcesBatch } = await import('../services/import');
       const result = await importFromSourcesBatch(batchSources, {
         concurrentDownloads: 5, // 每批并发下载5个URL
         customFormatter: formatter as (data: import('../types/poem').Poem[], source: SourceInfo) => import('../types/poem').Poem[],

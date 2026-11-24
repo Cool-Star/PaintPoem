@@ -9,11 +9,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/xiaoxing/paint-poem/releases">
-    <img src="https://img.shields.io/github/v/release/xiaoxing/paint-poem" alt="Release">
+  <a href="https://github.com/Cool-Star/PaintPoem/releases">
+    <img src="https://img.shields.io/github/v/release/Cool-Star/PaintPoem" alt="Release">
   </a>
   <a href="LICENSE">
-    <img src="https://img.shields.io/github/license/xiaoxing/paint-poem" alt="License">
+    <img src="https://img.shields.io/github/license/Cool-Star/PaintPoem" alt="License">
   </a>
 </p>
 
@@ -31,39 +31,39 @@
 
 ### 首页与搜索
 <p align="center">
-  <img src="public/首页-搜索.png" alt="首页搜索" width="80%">
+  <img src="docs/screenshots/首页-搜索.png" alt="首页搜索" width="80%">
 </p>
 
 ### 诗词详情
 <p align="center">
-  <img src="public/详情页-拼音展示.png" alt="拼音展示" width="45%">
-  <img src="public/详情页-译文展示.png" alt="译文展示" width="45%">
+  <img src="docs/screenshots/详情页-拼音展示.png" alt="拼音展示" width="45%">
+  <img src="docs/screenshots/详情页-译文展示.png" alt="译文展示" width="45%">
 </p>
 
 ### 字帖生成
 <p align="center">
-  <img src="public/字帖预览-1.png" alt="字帖预览1" width="45%">
-  <img src="public/字帖预览-2.png" alt="字帖预览2" width="45%">
+  <img src="docs/screenshots/字帖预览-1.png" alt="字帖预览1" width="45%">
+  <img src="docs/screenshots/字帖预览-2.png" alt="字帖预览2" width="45%">
 </p>
 
 ### AI 智能配图
 <p align="center">
-  <img src="public/智能配图.png" alt="智能配图" width="80%">
+  <img src="docs/screenshots/智能配图.png" alt="智能配图" width="80%">
 </p>
 
 ### 字体管理
 <p align="center">
-  <img src="public/字体管理.png" alt="字体管理" width="80%">
+  <img src="docs/screenshots/字体管理.png" alt="字体管理" width="80%">
 </p>
 
 ### 收藏管理
 <p align="center">
-  <img src="public/收藏管理.png" alt="收藏管理" width="80%">
+  <img src="docs/screenshots/收藏管理.png" alt="收藏管理" width="80%">
 </p>
 
 ### 数据导入
 <p align="center">
-  <img src="public/在线数据源导入.png" alt="数据导入" width="80%">
+  <img src="docs/screenshots/在线数据源导入.png" alt="数据导入" width="80%">
 </p>
 
 ## 技术栈
@@ -79,31 +79,36 @@
 
 ### 下载预编译版本
 
-前往 [Releases](https://github.com/xiaoxing/paint-poem/releases) 页面下载对应平台的安装包。
+前往 [Releases](https://github.com/Cool-Star/PaintPoem/releases) 页面下载对应平台的安装包。
 
 ### 从源码构建
 
-**环境要求:**
-- Node.js 18+
-- Rust 1.70+
-- pnpm
+环境要求
 
-**构建步骤:**
+- Node.js 20.19+ 或 22.12+，CI 使用 Node.js 22。
+- Rust 1.93.0，与 CI 使用的版本一致。
+- pnpm 10.26.1，版本记录在 `package.json` 中。
+- 按平台安装 [Tauri 2 构建依赖](https://v2.tauri.app/start/prerequisites/)。macOS 需要 Xcode Command Line Tools，Windows 需要 Visual Studio C++ Build Tools 和 WebView2，Linux 需要 WebKitGTK 4.1 等系统库。
 
 ```bash
 # 克隆仓库
-git clone https://github.com/xiaoxing/paint-poem.git
-cd paint-poem
+git clone https://github.com/Cool-Star/PaintPoem.git
+cd PaintPoem
 
 # 安装依赖
-pnpm install
+pnpm install --frozen-lockfile
 
 # 开发模式
 pnpm dev
 
-# 构建生产版本
+# 检查类型并构建前端资源，输出到 dist/
 pnpm build
+
+# 构建当前系统的桌面安装包，按 Cargo.lock 锁定 Rust 依赖
+pnpm build:desktop -- --locked
 ```
+
+桌面安装包位于 `src-tauri/target/release/bundle/`。GitHub Actions 的 Build 工作流会为 Linux、Windows 和 macOS 分别打包，结果可在对应运行记录的 Artifacts 中下载。
 
 ## 使用指南
 
@@ -143,7 +148,7 @@ paint-poem/
 │   ├── icons/              # 应用图标
 │   └── Cargo.toml          # Rust 依赖配置
 ├── public/                 # 静态资源
-└── docs/                   # 文档
+└── docs/screenshots/       # README 截图
 ```
 
 ## 数据源
@@ -154,7 +159,7 @@ paint-poem/
 
 ## 许可证
 
-[MIT](LICENSE)
+项目代码采用 [MIT](LICENSE)。随安装包提供的思源宋体采用 [SIL Open Font License 1.1](src-tauri/third-party/SourceHanSerif-OFL.txt)。
 
 ## 致谢
 

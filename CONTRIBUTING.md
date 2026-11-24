@@ -6,7 +6,7 @@
 
 ### 报告问题
 
-如果您发现了 bug 或有功能建议，请通过 [GitHub Issues](https://github.com/xiaoxing/paint-poem/issues) 提交。
+如果您发现了 bug 或有功能建议，请通过 [GitHub Issues](https://github.com/Cool-Star/PaintPoem/issues) 提交。
 
 提交问题时请包含：
 - 问题的详细描述
@@ -18,7 +18,7 @@
 ### 提交代码
 
 1. **Fork 仓库** - 点击右上角的 Fork 按钮
-2. **克隆仓库** - `git clone https://github.com/YOUR_USERNAME/paint-poem.git`
+2. **克隆仓库** - `git clone https://github.com/YOUR_USERNAME/PaintPoem.git`
 3. **创建分支** - `git checkout -b feature/your-feature-name`
 4. **提交更改** - `git commit -m "feat: add some feature"`
 5. **推送分支** - `git push origin feature/your-feature-name`
@@ -64,11 +64,11 @@ feat(pdf): 添加回宫格支持
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/xiaoxing/paint-poem.git
-cd paint-poem
+git clone https://github.com/Cool-Star/PaintPoem.git
+cd PaintPoem
 
 # 2. 安装依赖
-pnpm install
+pnpm install --frozen-lockfile
 
 # 3. 启动开发服务器
 pnpm dev
@@ -90,8 +90,8 @@ src/
 ### 测试
 
 提交 PR 前请确保：
-- [ ] 代码可以正常编译 (`pnpm tsc --noEmit`)
-- [ ] 没有引入新的 TypeScript 错误
+- [ ] TypeScript 检查通过（`pnpm typecheck`）
+- [ ] 构建相关变更已验证桌面打包（`pnpm build:desktop -- --locked`）
 - [ ] 功能在本地测试通过
 
 ## 行为准则
