@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Card, Space, Modal, message, Select } from 'antd';
+import { Alert, Form, Input, Button, Card, Space, Modal, message, Select } from 'antd';
 import { SaveOutlined, DeleteOutlined, ExclamationCircleOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
-import { setSettings } from '../store/settingsSlice';
+import { setSettings, type SettingsState } from '../store/settingsSlice';
 import { initializeImportSources } from '../store/downloadSlice';
 import { loadFonts, setGlobalFont, setPrintFont } from '../store/fontSlice';
 import { getSettings, saveSettings, deleteAllPoems } from '../db';
@@ -13,14 +13,20 @@ import { appDataDir, join } from '@tauri-apps/api/path';
 import styles from './Settings.module.scss';
 
 const { confirm } = Modal;
+const textFields = ['llmUrl', 'llmModel', 'llmKey'] as const;
+const imageFields = ['imageBaseURL', 'imageModel', 'imageApiKey'] as const;
 
 const Settings: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const settings = useSelector((state: RootState) => state.settings);
   const { fonts, globalDefaultFontId, printDefaultFontId } = useSelector((state: RootState) => state.font);
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<SettingsState>();
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [testingTextModel, setTestingTextModel] = useState(false);
+  const [connectionResult, setConnectionResult] = useState<{ type: 'success' | 'error'; title: string } | null>(null);
+  const textConfigured = Form.useWatch(values => textFields.some(field => !!values[field]?.trim()), form);
+  const imageConfigured = Form.useWatch(values => imageFields.some(field => !!values[field]?.trim()), form);
 
   useEffect(() => {
     loadSettings();
@@ -49,26 +55,44 @@ const Settings: React.FC = () => {
       };
       dispatch(setSettings(settingsData));
       form.setFieldsValue(settingsData);
-    } catch (error) {
-      console.error('Failed to load settings:', error);
+    } catch {
       message.error('加载设置失败');
     }
   };
 
   const handleSave = async () => {
-    try {
-      const values = await form.validateFields();
-      setLoading(true);
+    const values = await form.validateFields().catch(() => null);
+    if (!values) return;
 
+    setLoading(true);
+    try {
       await saveSettings(values);
       dispatch(setSettings(values));
 
       message.success('设置已保存');
-    } catch (error) {
-      console.error('Failed to save settings:', error);
+    } catch {
       message.error('保存设置失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTestTextModel = async () => {
+    if (testingTextModel) return;
+    setTestingTextModel(true);
+    setConnectionResult(null);
+    try {
+      const values = await form.validateFields([...textFields]);
+      const { requestTextCompletion } = await import('../services/textModel');
+      await requestTextCompletion(values, [{ role: 'user', content: '请只回复 OK。' }], 15_000);
+      setConnectionResult({ type: 'success', title: '连接成功，已收到文本大模型的回复' });
+    } catch (error) {
+      setConnectionResult({
+        type: 'error',
+        title: error instanceof Error ? error.message : '请检查文本大模型的配置',
+      });
+    } finally {
+      setTestingTextModel(false);
     }
   };
 
@@ -134,29 +158,40 @@ const Settings: React.FC = () => {
           layout="vertical"
           initialValues={settings}
           className={styles.form}
+          onValuesChange={changedValues => {
+            if (textFields.some(field => field in changedValues)) setConnectionResult(null);
+          }}
         >
           <Card title="文本大模型配置" className={styles.card}>
             <Form.Item
               label="Base URL"
               name="llmUrl"
-              rules={[{ type: 'url', message: '请输入有效的 URL' }]}
+              rules={[
+                { required: textConfigured, whitespace: true, message: '请输入 Base URL' },
+                { type: 'url', transform: value => value?.trim(), message: '请输入有效的 URL' },
+              ]}
             >
-              <Input placeholder="例如: https://api.openai.com/v1" />
+              <Input placeholder="例如 https://api.openai.com/v1" disabled={testingTextModel} />
             </Form.Item>
 
             <Form.Item
               label="模型名称"
               name="llmModel"
             >
-              <Input placeholder="例如: gpt-3.5-turbo" />
+              <Input placeholder="留空时使用 gpt-3.5-turbo" disabled={testingTextModel} />
             </Form.Item>
 
             <Form.Item
               label="API Key"
               name="llmKey"
+              rules={[{ required: textConfigured, whitespace: true, message: '请输入 API Key' }]}
             >
-              <Input.Password placeholder="请输入 API Key" />
+              <Input.Password placeholder="请输入 API Key" disabled={testingTextModel} />
             </Form.Item>
+            <Button onClick={handleTestTextModel} loading={testingTextModel}>
+              测试连通性
+            </Button>
+            {connectionResult && <Alert {...connectionResult} showIcon style={{ marginTop: 12 }} />}
           </Card>
 
           <Card title="图像生成配置" className={styles.card}>
@@ -164,29 +199,27 @@ const Settings: React.FC = () => {
               label="Base URL"
               name="imageBaseURL"
               rules={[
-                { required: true, message: '请输入 Base URL' },
-                { type: 'url', message: '请输入有效的 URL' }
+                { required: imageConfigured, whitespace: true, message: '请输入 Base URL' },
+                { type: 'url', transform: value => value?.trim(), message: '请输入有效的 URL' },
               ]}
             >
-              <Input placeholder="例如: https://qianfan.baidubce.com/v2" />
+              <Input placeholder="例如 https://api.openai.com/v1" />
             </Form.Item>
             <Form.Item
               label="模型名称"
               name="imageModel"
-              rules={[{ required: true, message: '请输入模型名称' }]}
+              rules={[{ required: imageConfigured, whitespace: true, message: '请输入模型名称' }]}
             >
-              <Input placeholder="例如: qfan-image" />
+              <Input placeholder="例如 gpt-image-2.5-flare" />
             </Form.Item>
 
             <Form.Item
               label="API Key"
               name="imageApiKey"
-              rules={[{ required: true, message: '请输入 API Key' }]}
+              rules={[{ required: imageConfigured, whitespace: true, message: '请输入 API Key' }]}
             >
               <Input.Password placeholder="请输入 API Key" />
             </Form.Item>
-
-
           </Card>
 
           <Card title="字体设置" className={styles.card}>

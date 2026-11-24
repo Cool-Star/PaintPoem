@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Typography, Button, Space, message, Modal, Tooltip, Radio, Select } from 'antd';
 import {
@@ -22,6 +22,7 @@ import { loadFavorites } from '../store/favoriteSlice';
 import { getFontFamily, loadFontFace } from '../utils/fontLoader';
 import { getDb, getPoemCovers, addPoemCover, deletePoemCover, setActiveCover as setDbActiveCover, type PoemCover } from '../db';
 import type { PoemData } from '../types/poem';
+import { translationStyles, type TranslationStyle } from '../services/translationStyles';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { copyFile, mkdir, BaseDirectory, writeFile } from '@tauri-apps/plugin-fs';
@@ -33,9 +34,11 @@ import FavoriteButton from '../components/FavoriteButton';
 import styles from './PoemDetail.module.scss';
 
 const { Title, Text, Paragraph } = Typography;
+const translationStyleOptions = Object.entries(translationStyles).map(([value, { label }]) => ({ value, label }));
 
 const PoemDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const activePoemRoute = useRef(id);
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const settings = useSelector((state: RootState) => state.settings);
@@ -43,7 +46,10 @@ const PoemDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [optimizing, setOptimizing] = useState(false);
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [aiMode, setAiMode] = useState<'optimize' | 'translate'>('optimize');
+  const [translationStyle, setTranslationStyle] = useState<TranslationStyle>('natural');
+  const [aiProcessing, setAiProcessing] = useState(false);
   const [viewMode, setViewMode] = useState<'original' | 'translation'>('original');
   const [showPinyin, setShowPinyin] = useState(false);
   const [printModalOpen, setPrintModalOpen] = useState(false);
@@ -60,6 +66,16 @@ const PoemDetail: React.FC = () => {
   const fonts = fontState.fonts;
   const printDefaultFontId = fontState.printDefaultFontId;
   const themeState = useSelector((state: RootState) => state.theme);
+
+  useLayoutEffect(() => {
+    activePoemRoute.current = id;
+    return () => { activePoemRoute.current = undefined; };
+  }, [id]);
+
+  useEffect(() => {
+    setAiDialogOpen(false);
+    setViewMode('original');
+  }, [id]);
 
   // 加载字体用于预览
   useEffect(() => {
@@ -79,6 +95,7 @@ const PoemDetail: React.FC = () => {
   const loadCovers = async (poemId: number) => {
     try {
       const poemCovers = await getPoemCovers(poemId);
+      if (activePoemRoute.current !== id) return;
       setCovers(poemCovers);
 
       // 找到当前生效的配图
@@ -87,9 +104,7 @@ const PoemDetail: React.FC = () => {
       if (activeCover) {
         setActiveCoverId(activeCover.id);
 
-        // 进入诗词详情页时，默认切换到该诗词的配图作为全局背景
-        // 只有当当前全局背景不是该诗词的配图时，才进行切换
-        if (themeState.activeCoverPoemId !== poemId) {
+        if (themeState.activeCoverPoemId !== poemId || themeState.activeCoverId !== activeCover.id) {
           const coverUrl = convertFileSrc(activeCover.cover_path);
           dispatch(saveActiveCover({
             coverUrl,
@@ -260,84 +275,54 @@ const PoemDetail: React.FC = () => {
     });
   };
 
-  const handleCreateCover = async () => {
+  const handleCreateCover = () => {
     if (!poem || generating) return;
 
-    // 验证配置
-    if (!settings.imageModel || !settings.imageApiKey || !settings.imageBaseURL) {
+    if (!settings.imageModel.trim() || !settings.imageApiKey.trim() || !settings.imageBaseURL.trim()) {
       message.error('请先在设置中配置图像大模型');
       return;
     }
 
-    // 打开参数选择弹窗
     setModalOpen(true);
   };
 
-  const getStyleDescription = (style: string): string => {
-    const styleMap: Record<string, string> = {
-      cartoon: '要求：国风卡通，Q 版古风元素，诗词意境场景，淡雅柔和配色，简约干净，治愈温馨，适合文创、海报、短视频配图。',
-      ink: '要求：传统中国风水墨兼工笔，古典诗词意境，远山云雾，留白美学，淡墨青黛，线条温润，光影柔和，古风韵味，高清，书籍插图质感。',
-      oil: '要求：古典印象派油画质感，诗词意境场景，厚涂笔触，柔和光影，朦胧氛围感，复古色调，层次丰富，艺术感强，高清。',
-      realistic: '要求：写实主义风格，诗词意境场景，真实感强，细节丰富，色彩鲜明，光影效果自然，艺术感强，高清。',
-    };
-    return styleMap[style] || '';
-  };
-
   const handleModalOk = async (params: ImageGenerateParams) => {
-    if (!poem) return;
+    if (!poem || generating) return;
+
+    const poemId = poem.id;
+    const progressKey = `poem-cover-${poemId}`;
+    const textSettings = settings.llmUrl.trim() && settings.llmKey.trim() ? settings : undefined;
+    setGenerating(true);
+    setModalOpen(false);
 
     try {
-      setGenerating(true);
-      setModalOpen(false);
+      const { buildPoemImagePrompt, generateImage } = await import('../services/images');
+      if (textSettings) {
+        message.loading({ key: progressKey, content: '正在撰写配图描述', duration: 0 });
+      }
+      const { prompt, descriptionError } = await buildPoemImagePrompt(poem, params.style, textSettings);
+      if (descriptionError) {
+        message.warning(`配图描述生成失败，使用基础描述继续。 ${descriptionError}`);
+      }
 
-      const { generateImage } = await import('../services/images');
-      const styleDesc = getStyleDescription(params.style);
-      const coverUrl = await generateImage({
-        prompt: `请为以下诗词创作一幅配图：
-诗词信息：
-标题：《${poem.title}》
-作者：${poem.author}
-内容：
-${poem.paragraphs}
-
-创作要求：
-1. ${styleDesc}
-2. 画面需要体现诗词的意境和情感氛围
-3. 构图要符合中国古典美学，注重留白和意境
-4. 画面中不要出现任何文字内容
-5. 色调要与诗词情感相呼应
-6. 画面元素要简洁优雅，避免过于繁杂
-      `,
+      message.loading({ key: progressKey, content: '正在生成配图', duration: 0 });
+      const coverPath = await generateImage({
+        prompt,
         model: settings.imageModel,
         apiKey: settings.imageApiKey,
         baseURL: settings.imageBaseURL,
         size: params.size,
       });
 
-      if (coverUrl) {
-        // 添加到配图列表
-        const coverId = await addPoemCover(Number(id), coverUrl);
-
-        // 自动设为生效配图（AI生成后自动生效到全局）
-        await setDbActiveCover(Number(id), coverId);
-
-        // 刷新配图列表
-        await loadCovers(Number(id));
-
-        // 更新全局背景并持久化
-        const newCoverUrl = convertFileSrc(coverUrl);
-        dispatch(saveActiveCover({
-          coverUrl: newCoverUrl,
-          poemId: Number(id),
-          coverId,
-          coverPath: coverUrl
-        }));
-
-        message.success('封面生成成功');
-      }
+      const coverId = await addPoemCover(poemId, coverPath);
+      await setDbActiveCover(poemId, coverId);
+      await loadCovers(poemId);
+      message.success({ key: progressKey, content: '封面生成成功' });
     } catch (error) {
-      console.error('Create cover failed:', error);
-      message.error('生成封面失败');
+      message.error({
+        key: progressKey,
+        content: error instanceof Error ? error.message : '生成封面失败',
+      });
     } finally {
       setGenerating(false);
     }
@@ -347,43 +332,44 @@ ${poem.paragraphs}
     setModalOpen(false);
   };
 
-  // AI优化诗词
-  const handleOptimize = async () => {
-    if (!poem) return;
+  const handleAiPoem = async () => {
+    if (!poem || poem.id !== Number(id) || aiProcessing) return;
 
-    if (!settings.llmUrl || !settings.llmKey) {
+    if (!settings.llmUrl.trim() || !settings.llmKey.trim()) {
       message.error('请先配置文本大模型');
       return;
     }
 
-    setOptimizing(true);
+    setAiProcessing(true);
     try {
-      const { optimizePoem, saveOptimizedPoem } = await import('../services/ai');
-      const result = await optimizePoem(poem, {
+      const { optimizePoem, saveOptimizedPoem, translatePoem, savePoemTranslation } = await import('../services/ai');
+      const llmSettings = {
         llmUrl: settings.llmUrl,
         llmKey: settings.llmKey,
         llmModel: settings.llmModel,
-      });
+      };
 
-      if (result.success) {
-        const db = await getDb();
-        await saveOptimizedPoem(Number(id), result, db);
-
-        // 刷新诗词数据
-        const results = await db.select<PoemData[]>('SELECT * FROM poems WHERE id = ?', [id]);
-        if (results.length > 0) {
-          setPoem(results[0]);
-        }
-
-        message.success('AI优化完成');
+      let updated: Partial<PoemData>;
+      if (aiMode === 'translate') {
+        const translation = await translatePoem(poem, llmSettings, translationStyle);
+        await savePoemTranslation(poem, translation, await getDb());
+        updated = { translation };
       } else {
-        message.error(result.error || '优化失败');
+        const result = await optimizePoem(poem, llmSettings, translationStyle);
+        updated = await saveOptimizedPoem(poem, result, await getDb());
       }
+
+      if (activePoemRoute.current !== id) return;
+      setPoem(current => current?.id === poem.id ? { ...current, ...updated } : current);
+      if (aiMode === 'translate') setViewMode('translation');
+      setAiDialogOpen(false);
+      message.success(aiMode === 'translate' ? 'AI 翻译完成' : 'AI 优化完成');
     } catch (error) {
-      console.error('Optimize failed:', error);
-      message.error('AI优化失败');
+      if (activePoemRoute.current === id) {
+        message.error(error instanceof Error ? error.message : 'AI 处理失败，请重试');
+      }
     } finally {
-      setOptimizing(false);
+      setAiProcessing(false);
     }
   };
 
@@ -559,6 +545,8 @@ ${poem.paragraphs}
   if (loading) return <div>加载中...</div>;
   if (!poem) return null;
 
+  const aiActionLabel = poem.ai_optimized ? '重新优化或翻译诗词' : 'AI 优化或翻译诗词';
+
   return (
     <div className={styles.container}>
 
@@ -604,19 +592,17 @@ ${poem.paragraphs}
             </Tooltip>
           )}
 
-          {/* AI优化按钮 - 未优化时显示 */}
-          {!poem?.ai_optimized && (
-            <Tooltip title="AI优化诗词" placement="bottom">
-              <Button
-                type="text"
-                size="large"
-                className={styles.actionBtn}
-                onClick={handleOptimize}
-                disabled={optimizing}
-                icon={optimizing ? <LoadingOutlined /> : <ThunderboltOutlined />}
-              />
-            </Tooltip>
-          )}
+          <Tooltip title={aiActionLabel} placement="bottom">
+            <Button
+              type="text"
+              size="large"
+              className={styles.actionBtn}
+              aria-label={aiActionLabel}
+              onClick={() => setAiDialogOpen(true)}
+              disabled={aiProcessing}
+              icon={aiProcessing ? <LoadingOutlined /> : <ThunderboltOutlined />}
+            />
+          </Tooltip>
 
           <Tooltip title="智能配图" placement="bottom">
             <Button
@@ -690,9 +676,52 @@ ${poem.paragraphs}
         poemId={Number(id)}
       />
 
+      <Modal
+        title={aiActionLabel}
+        open={aiDialogOpen}
+        onOk={handleAiPoem}
+        onCancel={() => { if (!aiProcessing) setAiDialogOpen(false); }}
+        okText={aiMode === 'translate' ? '生成译文' : '开始优化'}
+        cancelText="取消"
+        confirmLoading={aiProcessing}
+        closable={!aiProcessing}
+        keyboard={!aiProcessing}
+        cancelButtonProps={{ disabled: aiProcessing }}
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%', paddingBlock: 8 }}>
+          <Radio.Group
+            aria-label="处理方式"
+            value={aiMode}
+            disabled={aiProcessing}
+            onChange={event => setAiMode(event.target.value)}
+            options={[
+              { label: poem.ai_optimized ? '重新优化' : '优化诗词', value: 'optimize' },
+              { label: '仅翻译', value: 'translate' },
+            ]}
+          />
+          <Text type="secondary">
+            {aiMode === 'translate'
+              ? '为当前诗词单独生成译文。'
+              : '从原文生成校正版、拼音和译文。'}
+          </Text>
+          <div>
+            <Text strong>译文风格</Text>
+            <Select<TranslationStyle>
+              aria-label="译文风格"
+              value={translationStyle}
+              disabled={aiProcessing}
+              onChange={setTranslationStyle}
+              options={translationStyleOptions}
+              style={{ width: '100%', marginTop: 8 }}
+            />
+          </div>
+        </Space>
+      </Modal>
+
       {/* 图片生成参数选择弹窗 */}
       <ImageGenerateModal
         open={modalOpen}
+        model={settings.imageModel}
         onOk={handleModalOk}
         onCancel={handleModalCancel}
         loading={generating}
