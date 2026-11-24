@@ -45,13 +45,13 @@
 
 ### 首页与搜索
 <p align="center">
-  <img src="docs/screenshots/首页-搜索.png" alt="首页搜索" width="80%">
+  <img src="docs/screenshots/current/search.jpg" alt="在 PaintPoem 搜索诗词" width="80%">
 </p>
 
 ### 诗词详情
 <p align="center">
-  <img src="docs/screenshots/详情页-拼音展示.png" alt="拼音展示" width="45%">
-  <img src="docs/screenshots/详情页-译文展示.png" alt="译文展示" width="45%">
+  <img src="docs/screenshots/current/poem-pinyin.jpg" alt="诗词详情的拼音展示" width="45%">
+  <img src="docs/screenshots/current/poem-translation.jpg" alt="诗词详情的译文展示" width="45%">
 </p>
 
 ### 字帖预览
@@ -61,22 +61,22 @@
 
 ### AI 智能配图
 <p align="center">
-  <img src="docs/screenshots/智能配图.png" alt="智能配图" width="80%">
+  <img src="docs/screenshots/current/ai-illustration.jpg" alt="智能配图的古典与卡通风格选项" width="80%">
 </p>
 
 ### 字体管理
 <p align="center">
-  <img src="docs/screenshots/字体管理.png" alt="字体管理" width="80%">
+  <img src="docs/screenshots/current/fonts.jpg" alt="查看和管理应用字体" width="80%">
 </p>
 
 ### 收藏管理
 <p align="center">
-  <img src="docs/screenshots/收藏管理.png" alt="收藏管理" width="80%">
+  <img src="docs/screenshots/current/favorites.jpg" alt="查看收藏的诗词" width="80%">
 </p>
 
 ### 数据导入
 <p align="center">
-  <img src="docs/screenshots/在线数据源导入.png" alt="数据导入" width="80%">
+  <img src="docs/screenshots/current/import.jpg" alt="选择在线诗词数据源并导入" width="80%">
 </p>
 
 ## 技术栈
