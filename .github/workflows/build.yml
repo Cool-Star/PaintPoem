@@ -3,6 +3,7 @@ name: Build
 on:
   push:
     branches: [ main, develop ]
+    tags: [ 'v[0-9]+.[0-9]+.[0-9]+' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -54,10 +55,103 @@ jobs:
       uses: actions/upload-artifact@v6
       with:
         name: PaintPoem-${{ matrix.platform }}
+        overwrite: true
         if-no-files-found: error
         path: |
           src-tauri/target/release/bundle/**/*.dmg
           src-tauri/target/release/bundle/**/*.exe
           src-tauri/target/release/bundle/**/*.msi
           src-tauri/target/release/bundle/**/*.deb
+          src-tauri/target/release/bundle/**/*.rpm
           src-tauri/target/release/bundle/**/*.AppImage
+
+  release:
+    if: github.event_name == 'push' && github.ref_type == 'tag' && github.event.created
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release-${{ github.ref_name }}
+      cancel-in-progress: false
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Verify release tag and version
+      shell: bash
+      run: |
+        if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+          echo "::error::The release tag must point to a commit on main."
+          exit 1
+        fi
+        python3 - "$RELEASE_TAG" <<'PY'
+        import json
+        import re
+        import sys
+        import tomllib
+        from pathlib import Path
+
+        tag = sys.argv[1]
+        if not re.fullmatch(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", tag):
+            sys.exit(f"Expected a stable vX.Y.Z release tag, got {tag}")
+
+        for path in ("package.json", "src-tauri/tauri.conf.json", "src-tauri/Cargo.toml"):
+            manifest = Path(path).read_text(encoding="utf-8")
+            version = (
+                tomllib.loads(manifest)["package"]["version"]
+                if path.endswith(".toml")
+                else json.loads(manifest)["version"]
+            )
+            if f"v{version}" != tag:
+                sys.exit(f"{path} has version {version}, expected {tag[1:]}")
+        PY
+
+    - uses: actions/download-artifact@v8
+      with:
+        pattern: PaintPoem-*
+        path: release-assets
+
+    - name: Publish public release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        python3 - <<'PY'
+        import os
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        formats = {
+            "ubuntu-latest": {".deb", ".rpm", ".AppImage"},
+            "windows-latest": {".exe", ".msi"},
+            "macos-latest": {".dmg"},
+        }
+        installers = []
+        names = set()
+        for platform, extensions in formats.items():
+            artifact = Path("release-assets") / f"PaintPoem-{platform}"
+            files = sorted(
+                path for path in artifact.rglob("*")
+                if path.is_file() and path.suffix in extensions
+            )
+            if not files:
+                sys.exit(f"No release installers found for {platform}")
+            for path in files:
+                if path.name in names or path.stat().st_size == 0:
+                    sys.exit(f"Empty installer or duplicate attachment name: {path}")
+                names.add(path.name)
+                installers.append(str(path))
+
+        tag = os.environ["RELEASE_TAG"]
+        subprocess.run([
+            "gh", "release", "create", tag, *installers,
+            "--repo", os.environ["GITHUB_REPOSITORY"],
+            "--verify-tag", "--generate-notes", "--title", f"绘诗成帖 {tag}",
+        ], check=True)
+        PY

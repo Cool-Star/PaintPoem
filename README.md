@@ -108,7 +108,13 @@ pnpm build
 pnpm build:desktop -- --locked
 ```
 
-桌面安装包位于 `src-tauri/target/release/bundle/`。GitHub Actions 的 Build 工作流会为 Linux、Windows 和 macOS 分别打包，结果可在对应运行记录的 Artifacts 中下载。
+桌面安装包位于 `src-tauri/target/release/bundle/`。日常分支构建和 Pull Request 的 Linux、Windows 和 macOS 安装包可在 GitHub Actions 对应运行记录的 Artifacts 中下载。
+
+### 发布新版本
+
+1. 在 `package.json`、`src-tauri/tauri.conf.json` 和 `src-tauri/Cargo.toml` 中统一版本号，同步更新 `src-tauri/Cargo.lock`，并将版本变更合入 `main`。
+2. 在 `main` 上的对应版本提交创建并推送新的 `vX.Y.Z` 标签。标签中的版本号必须与项目版本一致。
+3. Linux、Windows 和 macOS 构建全部通过后，GitHub Actions 会自动创建公开 Release，生成发布说明并附上安装包。
 
 ## 使用指南
 
