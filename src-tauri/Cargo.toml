@@ -1,6 +1,6 @@
 [package]
 name = "paint-poem"
-version = "0.1.0"
+version = "0.1.1"
 description = "绘诗成帖 - 诗词字帖生成工具"
 authors = ["xiaoxing"]
 edition = "2021"
