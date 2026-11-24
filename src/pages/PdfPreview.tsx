@@ -74,31 +74,34 @@ const PdfPreview: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
+      <header className={styles.toolbar}>
         <Button
           icon={<LeftOutlined />}
           onClick={() => navigate(-1)}
-          size="large"
+          size="small"
           type="text"
+          aria-label="返回"
           title="返回"
         />
-        <div className={styles.title}>字帖预览</div>
+        <span className={styles.title}>
+          {params?.title ? `${params.title} · 字帖预览` : '字帖预览'}
+        </span>
         <Button
           type="primary"
           icon={<DownloadOutlined />}
           onClick={handleDownload}
           disabled={!pdfUrl}
-          size="large"
-          title="下载PDF"
-        />
-      </div>
+          size="small"
+        >
+          下载 PDF
+        </Button>
+      </header>
 
       <div className={styles.content}>
         {loading ? (
           <div className={styles.loading}>
-            <Spin size="large" />
-            <Text style={{ color: '#D4A574', fontSize: 16 }}>正在生成字帖PDF...</Text>
-            <Text style={{ color: 'rgba(212, 165, 116, 0.5)', fontSize: 14 }}>请稍候</Text>
+            <Spin />
+            <Text>正在生成字帖 PDF</Text>
           </div>
         ) : pdfUrl ? (
           <iframe
@@ -107,9 +110,7 @@ const PdfPreview: React.FC = () => {
             title="PDF预览"
           />
         ) : (
-          <div className={styles.error}>
-            <Text style={{ color: 'rgba(212, 165, 116, 0.6)' }}>PDF加载失败</Text>
-          </div>
+          <Text type="secondary">PDF 加载失败</Text>
         )}
       </div>
     </div>
