@@ -13,6 +13,11 @@ body,
   height: 100%;
 }
 
+.route-loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+}
 
 /* Chrome, Safari, Edge - 暗色系滚动条样式 */
 *::-webkit-scrollbar {

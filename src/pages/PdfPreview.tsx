@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, Spin, message, Typography } from 'antd';
 import { LeftOutlined, DownloadOutlined } from '@ant-design/icons';
-import { generateCalligraphyPdf } from '../services/calligraphyPdf';
+import type { GenerateCalligraphyPdfOptions } from '../services/calligraphyPdf';
 import styles from './PdfPreview.module.scss';
-import type { FontData } from '../types/font';
 
 const { Text } = Typography;
 
@@ -14,16 +13,7 @@ const PdfPreview: React.FC = () => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const params = location.state as {
-    title: string;
-    author: string;
-    content: string[];
-    mode: 'copy' | 'practice';
-    coverImage?: string;
-    font?: FontData;
-    showPinyin?: boolean;
-    pinyin?: string[];
-  };
+  const params = location.state as GenerateCalligraphyPdfOptions | null;
 
   useEffect(() => {
     if (!params) {
@@ -32,45 +22,46 @@ const PdfPreview: React.FC = () => {
       return;
     }
 
-    generatePdf();
+    let active = true;
+    let objectUrl: string | null = null;
+    setLoading(true);
+    setPdfUrl(null);
 
-    return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
+    const generatePdf = async () => {
+      try {
+        const { generateCalligraphyPdf } = await import('../services/calligraphyPdf');
+        if (!active) return;
+
+        const blob = await generateCalligraphyPdf({
+          ...params,
+          cellSize: 50,
+          margin: 40,
+          gridVariant: 'mi',
+        });
+        if (!active) return;
+
+        objectUrl = URL.createObjectURL(blob);
+        setPdfUrl(objectUrl);
+      } catch (error) {
+        if (!active) return;
+
+        console.error('PDF生成失败:', error);
+        message.error('PDF生成失败');
+        navigate(-1);
+      } finally {
+        if (active) setLoading(false);
       }
     };
-  }, []);
+    void generatePdf();
 
-  const generatePdf = async () => {
-    try {
-      setLoading(true);
-      const blob = await generateCalligraphyPdf({
-        title: params.title,
-        author: params.author,
-        content: params.content,
-        mode: params.mode,
-        coverImage: params.coverImage,
-        font: params.font,
-        cellSize: 50,
-        margin: 40,
-        gridVariant: 'mi',
-        showPinyin: params.showPinyin,
-        pinyin: params.pinyin,
-      });
-
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-    } catch (error) {
-      console.error('PDF生成失败:', error);
-      message.error('PDF生成失败');
-      navigate(-1);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [navigate, params]);
 
   const handleDownload = () => {
-    if (!pdfUrl) return;
+    if (!pdfUrl || !params) return;
 
     const link = document.createElement('a');
     link.href = pdfUrl;

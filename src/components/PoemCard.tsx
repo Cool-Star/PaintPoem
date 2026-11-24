@@ -3,20 +3,14 @@ import { Card, Typography, Button, Tag } from 'antd';
 import { DownOutlined, UpOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { convertFileSrc } from '@tauri-apps/api/core';
+import type { PoemCardData } from '../types/poem';
 import FavoriteButton from './FavoriteButton';
 import styles from './PoemCard.module.scss';
 
 const { Text, Paragraph } = Typography;
 
 interface PoemCardProps {
-  poem: {
-    id: number;
-    title?: string;
-    author?: string;
-    paragraphs?: string;
-    tags?: string;
-    activeCover?: string;
-  };
+  poem: PoemCardData;
   keywords?: string[];
   isExpanded?: boolean;
   onToggleExpand?: () => void;

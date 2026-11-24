@@ -45,6 +45,10 @@ export type PoemData = {
   pinyin?: string;
 };
 
+export type PoemCardData = Pick<PoemData, 'id' | 'title' | 'author' | 'paragraphs' | 'tags'> & {
+  activeCover?: string | null;
+};
+
 export type Poem = {
   id: number;
   // 标题

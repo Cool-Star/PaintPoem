@@ -3,16 +3,17 @@ import { useSelector } from 'react-redux';
 import MainLayout from './components/MainLayout';
 import './App.scss';
 import Home from './pages/Home';
-import Import from './pages/Import';
-import Settings from './pages/Settings';
-import PoemDetail from './pages/PoemDetail';
-import PdfPreview from './pages/PdfPreview';
-import FontManager from './pages/FontManager';
-import Favorites from './pages/Favorites';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, Spin, theme } from 'antd';
 import { RootState } from './store';
-import { useEffect, useMemo } from 'react';
+import { lazy, Suspense, useEffect, useMemo } from 'react';
 import { loadFontFace, getFontFamily } from './utils/fontLoader';
+
+const Favorites = lazy(() => import('./pages/Favorites'));
+const Import = lazy(() => import('./pages/Import'));
+const Settings = lazy(() => import('./pages/Settings'));
+const PoemDetail = lazy(() => import('./pages/PoemDetail'));
+const PdfPreview = lazy(() => import('./pages/PdfPreview'));
+const FontManager = lazy(() => import('./pages/FontManager'));
 
 function App() {
   const { globalDefaultFontId, fonts } = useSelector((state: RootState) => state.font);
@@ -53,15 +54,21 @@ function App() {
       algorithm: [theme.darkAlgorithm, theme.compactAlgorithm],
     }}>
       <MainLayout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/favorites" element={<Favorites />} />
-          <Route path="/import" element={<Import />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/poem/:id" element={<PoemDetail />} />
-          <Route path="/pdf-preview" element={<PdfPreview />} />
-          <Route path="/fonts" element={<FontManager />} />
-        </Routes>
+        <Suspense fallback={
+          <div className="route-loading" role="status" aria-label="正在加载页面">
+            <Spin />
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/favorites" element={<Favorites />} />
+            <Route path="/import" element={<Import />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/poem/:id" element={<PoemDetail />} />
+            <Route path="/pdf-preview" element={<PdfPreview />} />
+            <Route path="/fonts" element={<FontManager />} />
+          </Routes>
+        </Suspense>
       </MainLayout>
     </ConfigProvider>
 

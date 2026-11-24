@@ -5,61 +5,58 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ${{ matrix.platform }}
     strategy:
+      fail-fast: false
       matrix:
         platform: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8
+      uses: pnpm/action-setup@v6
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
-        node-version: '20'
+        node-version: '22'
         cache: 'pnpm'
 
     - name: Setup Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
-        toolchain: stable
+        toolchain: '1.93.0'
 
     - name: Install dependencies (Ubuntu)
       if: matrix.platform == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
     - name: Install frontend dependencies
-      run: pnpm install
-
-    - name: Type check
-      run: pnpm tsc --noEmit
-
-    - name: Build frontend
-      run: pnpm build
+      run: pnpm install --frozen-lockfile
 
     - name: Build Tauri
-      run: pnpm tauri build
+      run: pnpm build:desktop -- --locked
       env:
         TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: PaintPoem-${{ matrix.platform }}
+        if-no-files-found: error
         path: |
           src-tauri/target/release/bundle/**/*.dmg
-          src-tauri/target/release/bundle/**/*.app
           src-tauri/target/release/bundle/**/*.exe
           src-tauri/target/release/bundle/**/*.msi
           src-tauri/target/release/bundle/**/*.deb
