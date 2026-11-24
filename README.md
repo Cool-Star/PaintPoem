@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/Cool-Star/PaintPoem/main/docs/examples/chunxiao.pdf"><strong>下载《春晓》样张 PDF</strong></a>
+  <a href="https://raw.githubusercontent.com/Cool-Star/PaintPoem/main/docs/examples/chunxiao-practice.pdf"><strong>下载《春晓》样张 PDF</strong></a>
   ·
   <a href="https://github.com/Cool-Star/PaintPoem/releases/latest"><strong>下载安装包</strong></a>
   ·
@@ -20,7 +20,7 @@
 <p align="center">Windows x64 · macOS（Apple 芯片）· Linux x64</p>
 
 <p align="center">
-  <img src="docs/examples/chunxiao-preview.png" alt="PaintPoem 导出的《春晓》练字字帖预览" width="480">
+  <img src="docs/examples/chunxiao-practice.png" alt="PaintPoem 导出的《春晓》白底米字格练习字帖" width="480">
 </p>
 
 ## 快速开始
@@ -56,7 +56,7 @@
 
 ### 字帖预览
 <p align="center">
-  <img src="docs/examples/chunxiao-app-preview.jpg" alt="PaintPoem macOS 实机中的《春晓》字帖预览" width="80%">
+  <img src="docs/examples/chunxiao-practice-app.png" alt="PaintPoem 预览带拼音的《春晓》白底练习字帖" width="80%">
 </p>
 
 ### AI 智能配图
