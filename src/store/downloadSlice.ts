@@ -64,14 +64,14 @@ export const initializeImportSources = createAsyncThunk(
           if (urlConfig && typeof urlConfig === 'object' && 'url' in urlConfig) {
             const sourceKey = `${source.name}|${urlConfig.url}`;
             const importedSource = importedMap.get(sourceKey);
-            const isImported = !!importedSource;
+            const isImported = importedSource?.status === 'completed';
 
             tasks.push({
               sourceKey,
               sourceName: source.name,
               url: urlConfig.url,
               groups: urlConfig.groups,
-              status: isImported ? 'completed' : 'pending',
+              status: isImported ? 'completed' : importedSource?.status === 'failed' ? 'failed' : 'pending',
               progress: isImported ? 100 : 0,
               poemCount: importedSource?.poem_count || 0,
               // 不存储formatter，使用时动态查找
@@ -130,12 +130,14 @@ export const startImportTask = createAsyncThunk(
         }
       );
 
+      if (result.failed) throw new Error(`${result.failed} 首诗词写入失败，可重试`);
+      const poemCount = result.imported + result.duplicate;
       // 标记为已导入
       await markSourceAsImported(
         sourceKey,
         task.sourceName,
         task.url,
-        result.imported,
+        poemCount,
         'completed'
       );
 
@@ -143,6 +145,7 @@ export const startImportTask = createAsyncThunk(
       dispatch(downloadSlice.actions.updateTaskStatus({
         sourceKey,
         status: 'completed',
+        poemCount,
       }));
 
       return { sourceKey, result };
@@ -214,23 +217,22 @@ export const startBatchImport = createAsyncThunk(
             total: progress.totalDownload,
           }));
         },
-        onBatchComplete: (_batchIndex, _results, sourceResults) => {
-          // 更新已完成任务的状态
+        onBatchComplete: async (_batchIndex, _results, sourceResults) => {
           for (const sourceResult of sourceResults) {
-            dispatch(downloadSlice.actions.updateTaskStatus({
-              sourceKey: sourceResult.sourceKey,
-              status: sourceResult.success ? 'completed' : 'failed',
-              poemCount: sourceResult.poemCount,
-            }));
-
-            // 标记为已导入，传入实际的诗词数量
-            markSourceAsImported(
+            const status = sourceResult.success ? 'completed' : 'failed';
+            await markSourceAsImported(
               sourceResult.sourceKey,
               sourceResult.sourceName,
               sourceResult.url,
               sourceResult.poemCount,
-              sourceResult.success ? 'completed' : 'failed'
+              status
             );
+            dispatch(downloadSlice.actions.updateTaskStatus({
+              sourceKey: sourceResult.sourceKey,
+              status,
+              error: sourceResult.error,
+              poemCount: sourceResult.poemCount,
+            }));
           }
         },
       });
@@ -246,6 +248,8 @@ export const startBatchImport = createAsyncThunk(
 
       // 标记所有未完成的任务为失败
       for (const task of pendingTasks) {
+        const current = (getState() as { download: DownloadState }).download.tasks.find(t => t.sourceKey === task.sourceKey);
+        if (current?.status !== 'downloading') continue;
         dispatch(downloadSlice.actions.updateTaskStatus({
           sourceKey: task.sourceKey,
           status: 'failed',
@@ -310,23 +314,22 @@ export const startSourceBatchImport = createAsyncThunk(
             total: progress.totalDownload,
           }));
         },
-        onBatchComplete: (_batchIndex, _results, sourceResults) => {
-          // 更新已完成任务的状态
+        onBatchComplete: async (_batchIndex, _results, sourceResults) => {
           for (const sourceResult of sourceResults) {
-            dispatch(downloadSlice.actions.updateTaskStatus({
-              sourceKey: sourceResult.sourceKey,
-              status: sourceResult.success ? 'completed' : 'failed',
-              poemCount: sourceResult.poemCount,
-            }));
-
-            // 标记为已导入，传入实际的诗词数量
-            markSourceAsImported(
+            const status = sourceResult.success ? 'completed' : 'failed';
+            await markSourceAsImported(
               sourceResult.sourceKey,
               sourceResult.sourceName,
               sourceResult.url,
               sourceResult.poemCount,
-              sourceResult.success ? 'completed' : 'failed'
+              status
             );
+            dispatch(downloadSlice.actions.updateTaskStatus({
+              sourceKey: sourceResult.sourceKey,
+              status,
+              error: sourceResult.error,
+              poemCount: sourceResult.poemCount,
+            }));
           }
         },
       });
@@ -342,18 +345,12 @@ export const startSourceBatchImport = createAsyncThunk(
 
       // 标记失败
       for (const task of tasksToImport) {
+        const current = (getState() as { download: DownloadState }).download.tasks.find(t => t.sourceKey === task.sourceKey);
+        if (current?.status !== 'downloading') continue;
         dispatch(downloadSlice.actions.updateTaskStatus({
           sourceKey: task.sourceKey,
           status: 'failed',
         }));
-
-        markSourceAsImported(
-          task.sourceKey,
-          task.sourceName,
-          task.url,
-          0,
-          'failed'
-        );
       }
 
       dispatch(downloadSlice.actions.clearCurrentTask());
@@ -462,10 +459,9 @@ export const downloadSlice = createSlice({
       if (task) {
         const oldStatus = task.status;
         task.status = action.payload.status;
-        if (action.payload.error) {
-          task.error = action.payload.error;
-        }
+        task.error = action.payload.error;
 
+        const oldCount = task.poemCount || 0;
         // 更新 poemCount
         if (action.payload.poemCount !== undefined) {
           task.poemCount = action.payload.poemCount;
@@ -477,7 +473,7 @@ export const downloadSlice = createSlice({
           state.stats.importedPoems += action.payload.poemCount || 0;
         } else if (oldStatus === 'completed' && action.payload.status !== 'completed') {
           state.stats.completedSources -= 1;
-          state.stats.importedPoems -= task.poemCount || 0;
+          state.stats.importedPoems -= oldCount;
         }
       }
     },
@@ -507,8 +503,6 @@ export const downloadSlice = createSlice({
       })
       .addCase(startImportTask.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.stats.completedSources += 1;
-        state.stats.importedPoems += action.payload.result.imported;
         state.stats.failedPoems += action.payload.result.failed;
 
         // 在控制台输出成功信息
@@ -529,7 +523,6 @@ export const downloadSlice = createSlice({
         // 更新统计信息
         const result = action.payload as { total: number; imported: number; failed: number };
         state.stats.completedSources = state.tasks.filter(t => t.status === 'completed').length;
-        state.stats.importedPoems += result.imported;
         state.stats.failedPoems += result.failed;
       })
       .addCase(startBatchImport.rejected, (state) => {
@@ -543,10 +536,8 @@ export const downloadSlice = createSlice({
         state.isLoading = false;
         // 更新统计信息
         const results = action.payload as { total: number; imported: number; failed: number }[];
-        const totalImported = results.reduce((sum, r) => sum + r.imported, 0);
         const totalFailed = results.reduce((sum, r) => sum + r.failed, 0);
         state.stats.completedSources = state.tasks.filter(t => t.status === 'completed').length;
-        state.stats.importedPoems += totalImported;
         state.stats.failedPoems += totalFailed;
       })
       .addCase(startSourceBatchImport.rejected, (state) => {

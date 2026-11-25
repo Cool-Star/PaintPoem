@@ -78,6 +78,17 @@ export async function initDb() {
     console.error('❌ Migration error:', error);
   }
 
+  // 导入来源键不占用本地诗词主键，也不会改变收藏和封面的关联。
+  const columns = await database.select<{ name: string }[]>('PRAGMA table_info(poems)');
+  if (!columns.some(column => column.name === 'import_identity')) {
+    await database.execute('ALTER TABLE poems ADD COLUMN import_identity TEXT');
+  }
+  await database.execute('CREATE UNIQUE INDEX IF NOT EXISTS poems_import_identity ON poems(import_identity)');
+  await database.execute(`
+    CREATE INDEX IF NOT EXISTS poems_legacy_import_lookup ON poems(groups, title, author)
+    WHERE import_identity IS NULL
+  `);
+
   // 创建导入记录表
   await database.execute(`
     CREATE TABLE IF NOT EXISTS imported_sources (

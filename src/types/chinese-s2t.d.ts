@@ -12,4 +12,6 @@ declare module 'chinese-s2t' {
    * @returns 简体中文
    */
   export function t2s(text: string): string;
+  const converter: { t2s: typeof t2s; s2t: typeof s2t };
+  export default converter;
 }
