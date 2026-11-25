@@ -23,6 +23,8 @@ export const formatter = (data: Poem[], source: { url: string, groups: string[] 
   });
 };
 
+export const tangSupplementUrls = ['/全唐诗/唐诗补录.json', '/全唐诗/唐诗三百首.json'];
+
 export const poemSource = [
   {
     name: '五代诗词',
@@ -85,21 +87,19 @@ export const poemSource = [
   {
     name: '全唐诗',
     urls: [
-      ...new Array(255).fill(0).map((_, index) => {
-        return {
-          url: `/全唐诗/poet.song.${index * 1000}.json`,
-          groups: ['全唐诗'],
-        }
-      }),
-      {
-        url: '/全唐诗/唐诗补录.json',
+      ...Array.from({ length: 58 }, (_, index) => ({
+        url: `/全唐诗/poet.tang.${index * 1000}.json`,
         groups: ['全唐诗'],
-      },
-      {
-        url: '/全唐诗/唐诗三百首.json',
-        groups: ['全唐诗'],
-      },
+      })),
+      ...tangSupplementUrls.map(url => ({ url, groups: ['全唐诗'] })),
     ],
+  },
+  {
+    name: '全宋诗',
+    urls: Array.from({ length: 255 }, (_, index) => ({
+      url: `/全唐诗/poet.song.${index * 1000}.json`,
+      groups: ['全宋诗'],
+    })),
   },
   {
     name: '四书五经',

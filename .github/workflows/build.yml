@@ -45,6 +45,10 @@ jobs:
     - name: Install frontend dependencies
       run: pnpm install --frozen-lockfile
 
+    - name: Test poetry import
+      if: matrix.platform == 'ubuntu-latest'
+      run: node --test tests/collectionImport.test.mjs
+
     - name: Build Tauri
       run: pnpm build:desktop -- --locked
       env:

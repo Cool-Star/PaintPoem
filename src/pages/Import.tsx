@@ -125,6 +125,7 @@ const Import: React.FC = () => {
               const allCompleted = group.tasks.every(t => t.status === 'completed');
               const anyDownloading = group.tasks.some(t => t.status === 'downloading' || t.status === 'importing');
               const completedCount = group.tasks.filter(t => t.status === 'completed').length;
+              const anyFailed = group.tasks.some(t => t.status === 'failed');
 
               return (
                 <div key={group.name} className={styles.sourceItem}>
@@ -136,11 +137,12 @@ const Import: React.FC = () => {
                       </div>
                       <div className={styles.sourceDetails}>
                         {group.urlCount} 个文件 · {completedCount} / {group.urlCount} 已导入
+                        {group.name === '全宋诗' && <div>导入时会原地修正旧版可匹配的宋诗分类，保留收藏和封面。</div>}
                       </div>
                     </div>
                     <div className={styles.sourceActions}>
                       <span className={`${styles.statusBadge} ${styles[allCompleted ? 'completed' : anyDownloading ? 'downloading' : 'pending']}`}>
-                        {allCompleted ? '已完成' : anyDownloading ? '导入中' : '待导入'}
+                        {allCompleted ? '已完成' : anyDownloading ? '导入中' : anyFailed ? '导入失败，可重试' : '待导入'}
                       </span>
                       {allCompleted ? (
                         <Button

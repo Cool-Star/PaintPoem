@@ -1,7 +1,10 @@
 import type { Poem } from '../types/poem';
 import { getDb } from '../db';
-import { domain, formatter as defaultFormatter } from '../datas/poemSource';
-import { t2s } from 'chinese-s2t';
+import { collectionForSource, importCollection, simplifiedTextKey } from './collectionImport';
+import { domain, poemSource, tangSupplementUrls, formatter as defaultFormatter } from '../datas/poemSource';
+import chineseS2T from 'chinese-s2t';
+
+const { t2s } = chineseS2T;
 
 /**
  * 将繁体字转换为简体中文
@@ -378,6 +381,46 @@ export async function importPoemsToDb(
   return result;
 }
 
+// 同卷重新导入时，保护两份 v0.1.2 中本来就属于全唐诗的补充来源。
+let protectedTang: Promise<Set<string>> | undefined;
+function loadProtectedTang() {
+  if (!protectedTang) {
+    protectedTang = Promise.all(tangSupplementUrls.map(url => downloadAndParseJson(url)))
+      .then(files => {
+        if (files.some(file => !file.length || file.some(poem => !poem?.author || !Array.isArray(poem.paragraphs) || !poem.paragraphs.length || poem.paragraphs.some(line => typeof line !== 'string')))) {
+          throw new Error('无法校验唐诗补充来源，暂不修改旧标签');
+        }
+        return new Set(files.flatMap(file => file.flatMap(poem => [
+          simplifiedTextKey(poem),
+          ...(!poem.title ? [simplifiedTextKey({ ...poem, title: '无题' })] : []),
+        ])));
+      })
+      .catch(error => {
+        protectedTang = undefined;
+        throw error;
+      });
+  }
+  return protectedTang;
+}
+
+async function importDownloadedPoems(
+  raw: Poem[],
+  source: SourceInfo,
+  customFormatter?: (data: Poem[], source: SourceInfo) => Poem[],
+  onProgress?: (progress: ImportProgress) => void,
+  simplify = false,
+) {
+  const collection = collectionForSource(source.url);
+  if (collection) {
+    // 保留原始上游 ID，尤其不要把旧格式化器的数字回退哈希当成 UUID。
+    const poems = source.url === tangSupplementUrls[0]
+      ? raw.map(poem => ({ ...poem, title: poem.title || '无题' }))
+      : raw;
+    return importCollection(await getDb(), collection, poems, loadProtectedTang, onProgress);
+  }
+  return importPoemsToDb(formatPoems(simplify ? convertPoemsToSimplified(raw) : raw, source, customFormatter), onProgress);
+}
+
 // 完整的导入流程
 export async function importFromSource(
   source: SourceInfo,
@@ -385,16 +428,8 @@ export async function importFromSource(
   onProgress?: (progress: ImportProgress) => void
 ): Promise<ImportResult> {
   try {
-    // 1. 下载JSON
     const rawPoems = await downloadAndParseJson(source.url);
-    console.log(`Downloaded ${rawPoems.length} poems from ${source.url}`, rawPoems);
-    // 2. 格式化数据
-    const formattedPoems = formatPoems(rawPoems, source, customFormatter);
-
-    // 3. 导入到数据库
-    const result = await importPoemsToDb(formattedPoems, onProgress);
-
-    return result;
+    return await importDownloadedPoems(rawPoems, source, customFormatter, onProgress);
   } catch (error) {
     console.error('Import from source failed:', error);
     throw error;
@@ -402,9 +437,7 @@ export async function importFromSource(
 }
 
 // 批量导入多个源（并发下载 + 批量插入）
-export interface BatchImportSource {
-  url: string;
-  groups: string[];
+export interface BatchImportSource extends SourceInfo {
   sourceKey: string;
   sourceName: string;
 }
@@ -434,7 +467,7 @@ export async function importFromSourcesBatch(
     concurrentDownloads?: number;
     customFormatter?: (data: Poem[], source: SourceInfo) => Poem[];
     onProgress?: (progress: BatchImportProgress) => void;
-    onBatchComplete?: (batchIndex: number, results: ImportResult[], sourceResults: SourceImportResult[]) => void;
+    onBatchComplete?: (batchIndex: number, results: ImportResult[], sourceResults: SourceImportResult[]) => void | Promise<void>;
   } = {}
 ): Promise<ImportResult> {
   const {
@@ -469,85 +502,38 @@ export async function importFromSourcesBatch(
     const urls = batchSources.map(s => s.url);
     const downloadResults = await downloadMultipleUrls(urls);
 
-    // 2. 汇总下载的数据并格式化，同时跟踪每个 source 的诗词数量
-    let batchPoems: Poem[] = [];
-    let downloadedCount = 0;
+    // 逐卷记录实际写入结果；下载成功不代表 SQLite 写入成功。
+    const results: ImportResult[] = [];
     const sourceResults: SourceImportResult[] = [];
-
     for (let i = 0; i < downloadResults.length; i++) {
-      const result = downloadResults[i];
+      const download = downloadResults[i];
       const source = batchSources[i];
-
-      if (result.success && result.poems.length > 0) {
-        // 1. 先繁简转换（下载后立即转换）
-        console.log(`  🔄 ${source.url}: 繁简转换...`);
-        const simplifiedPoems = convertPoemsToSimplified(result.poems);
-
-        // 打印转换样例
-        if (simplifiedPoems.length > 0) {
-          console.log('    样例:', {
-            before: result.poems[0].title?.substring(0, 15),
-            after: simplifiedPoems[0].title?.substring(0, 15)
-          });
-        }
-
-        // 2. 再格式化数据
-        const formatted = formatPoems(
-          simplifiedPoems,
-          { url: source.url, groups: source.groups },
-          customFormatter
-        );
-        batchPoems = batchPoems.concat(formatted);
-        downloadedCount += result.poems.length;
-        console.log(`  ✅ ${source.url}: ${result.poems.length} 首`);
-
-        // 记录每个 source 的结果
+      const { sourceKey, sourceName, url } = source;
+      try {
+        if (!download.success) throw new Error(download.error || '下载失败');
+        const sourceFormatter = poemSource.find(config => config.name === sourceName)?.formatter as
+          ((data: Poem[], source: SourceInfo) => Poem[]) | undefined;
+        const formatter = customFormatter ?? sourceFormatter;
+        const result = await importDownloadedPoems(download.poems, source, formatter, undefined, true);
+        results.push(result);
+        totalResult.total += result.total;
+        totalResult.imported += result.imported;
+        totalResult.duplicate += result.duplicate;
+        totalResult.skipped += result.skipped;
+        totalResult.failed += result.failed;
         sourceResults.push({
-          sourceKey: source.sourceKey,
-          sourceName: source.sourceName,
-          url: source.url,
-          poemCount: formatted.length,
-          success: true,
+          sourceKey, sourceName, url,
+          poemCount: result.imported + result.duplicate,
+          success: result.failed === 0,
+          error: result.failed ? `${result.failed} 首诗词写入失败，可重试` : undefined,
         });
-      } else if (!result.success) {
-        console.error(`  ❌ ${source.url}: ${result.error}`);
-        totalResult.failed += 1; // 记录失败的文件
-
-        // 记录失败的 source
+      } catch (error) {
+        totalResult.failed += download.poems.length || 1;
         sourceResults.push({
-          sourceKey: source.sourceKey,
-          sourceName: source.sourceName,
-          url: source.url,
-          poemCount: 0,
-          success: false,
-          error: result.error,
-        });
-      } else {
-        // 成功但无诗词
-        sourceResults.push({
-          sourceKey: source.sourceKey,
-          sourceName: source.sourceName,
-          url: source.url,
-          poemCount: 0,
-          success: true,
+          sourceKey, sourceName, url, poemCount: 0, success: false,
+          error: error instanceof Error ? error.message : String(error),
         });
       }
-    }
-
-    totalResult.total += batchPoems.length;
-
-    console.log(`💾 批次 ${batchIndex + 1}: 共 ${batchPoems.length} 首诗词，开始导入数据库...`);
-
-    // 3. 批量导入当前批次的数据
-    if (batchPoems.length > 0) {
-      const importResult = await importPoemsToDb(batchPoems);
-
-      totalResult.imported += importResult.imported;
-      totalResult.duplicate += importResult.duplicate;
-      totalResult.skipped += importResult.skipped;
-      totalResult.failed += importResult.failed;
-
-      console.log(`  ✅ 导入完成: ${importResult.imported} 成功, ${importResult.duplicate} 重复, ${importResult.failed} 失败`);
     }
 
     // 4. 更新进度
@@ -565,7 +551,7 @@ export async function importFromSourcesBatch(
 
     // 5. 批次完成回调
     if (onBatchComplete) {
-      onBatchComplete(batchIndex, [totalResult], sourceResults);
+      await onBatchComplete(batchIndex, results, sourceResults);
     }
   }
 
